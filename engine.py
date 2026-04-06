@@ -67,7 +67,6 @@ def _align(h="left", v="center", wrap=False):
 def _align_indent(h="left", v="center", wrap=False, indent=1):
     return Alignment(horizontal=h, vertical=v, wrap_text=wrap, indent=indent)
 
-
 def _remover_acentos(txt: str) -> str:
     return ''.join(ch for ch in unicodedata.normalize('NFKD', str(txt)) if not unicodedata.combining(ch))
 
@@ -170,6 +169,55 @@ def _converter_texto_para_data(valor):
             except ValueError: pass
     return None
 
+def processar_hora(valor):
+    """
+    Motor central para tratamento inteligente e normalização de horas.
+    """
+    if valor_vazio(valor): return None
+    
+    # Prevenção do erro crítico 1899 onde zero é lido como meia-noite pelo Excel
+    if valor in (0, "0"): return None 
+    
+    if isinstance(valor, time): return valor
+    if isinstance(valor, datetime): return valor.time()
+    
+    # Excel armazena horas como frações de dias numéricos
+    if isinstance(valor, (int, float, Decimal)):
+        try:
+            val_float = float(valor)
+            if val_float <= 0: return None
+            
+            frac = val_float % 1
+            total_segundos = int(round(frac * 86400))
+            h = (total_segundos // 3600) % 24
+            m = (total_segundos % 3600) // 60
+            s = total_segundos % 60
+            return time(h, m, s)
+        except (ValueError, TypeError):
+            pass
+            
+    if isinstance(valor, str):
+        texto = valor.strip().lower()
+        formatos = ["%H:%M:%S", "%H:%M", "%Hh%M", "%H:%M:%S.%f", "%I:%M %p", "%I:%M:%S %p"]
+        for fmt in formatos:
+            try:
+                return datetime.strptime(texto, fmt).time()
+            except ValueError:
+                continue
+        
+        # Recuperação de erros comuns de digitação
+        digitos = apenas_digitos(texto)
+        if len(digitos) in (3, 4):
+            try:
+                h = int(digitos[:-2])
+                m = int(digitos[-2:])
+                if 0 <= h <= 23 and 0 <= m <= 59:
+                    return time(h, m)
+            except ValueError:
+                pass
+                
+    return None
+
 def linha_vazia(valores):
     return all(v is None or str(v).strip() == "" for v in valores)
 
@@ -205,9 +253,30 @@ def detectar_modulo_por_aba(nome_aba):
     return "DESCONHECIDO"
 
 def normalizar_status_por_modulo(valor, nome_aba, original):
+    """
+    Motor de validação de status reescrito utilizando o padrão Schema-First.
+    Garante a ausência de colisão semântica entre módulos (ex: FALTA na equipe vs FALTA de materiais).
+    """
     s_norm = normalizar_status(valor)
     s_lookup = s_norm.replace(" ", "_")
+    mod = detectar_modulo_por_aba(nome_aba)
 
+    # 1. SCHEMAS GLOBAIS
+    regras = {
+        "OBRAS": ["EM_ANDAMENTO", "PARALISADA", "CONCLUIDA", "CANCELADA"],
+        "EQUIPE": ["ATIVO", "INATIVO", "FERIAS", "AFASTADO", "PRESENTE", "FALTA"],
+        "VEICULOS": ["DISPONIVEL", "EM_USO", "MANUTENCAO", "INATIVO"],
+        "MATERIAIS": ["EM_ESTOQUE", "BAIXO_ESTOQUE", "ESGOTADO", "RESERVADO"],
+        "ENTREGAS": ["PENDENTE", "EM_ROTA", "ENTREGUE", "ATRASADA", "CANCELADA", "RECEBIDO", "CONFERIDO"]
+    }
+
+    # 2. MAPAS DE DOMÍNIO (Isola os sinônimos por módulo)
+    mapas_contextuais = {
+        "MATERIAIS": {"ACABOU": "ESGOTADO", "ZERADO": "ESGOTADO", "FALTA": "ESGOTADO"},
+        "EQUIPE": {"FALTOSO": "FALTA", "AUSENTE": "FALTA"}
+    }
+
+    # 3. MAPA GLOBAL (Tratamento legado - agora atua de forma inofensiva)
     mapa_geral = {
         "PAUSADO": "PARALISADA", "PARADA": "PARALISADA", "PARALISADO": "PARALISADA", "PARALIZADA": "PARALISADA",
         "ANDAMENTO": "EM_ANDAMENTO", "EM_ANDAMENTO": "EM_ANDAMENTO", "EXECUTANDO": "EM_ANDAMENTO",
@@ -222,7 +291,7 @@ def normalizar_status_por_modulo(valor, nome_aba, original):
         "MANUTENCAO": "MANUTENCAO", "OFICINA": "MANUTENCAO", "QUEBRADO": "MANUTENCAO",
         "EM_ESTOQUE": "EM_ESTOQUE", "DISPONIVEL_ESTOQUE": "EM_ESTOQUE",
         "BAIXO_ESTOQUE": "BAIXO_ESTOQUE", "ACABANDO": "BAIXO_ESTOQUE",
-        "ESGOTADO": "ESGOTADO", "FALTA": "ESGOTADO", "SEM_ESTOQUE": "ESGOTADO",
+        "ESGOTADO": "ESGOTADO", "SEM_ESTOQUE": "ESGOTADO",
         "RESERVADO": "RESERVADO", "SEPARADO": "RESERVADO",
         "PENDENTE": "PENDENTE", "AGUARDANDO": "PENDENTE",
         "EM_ROTA": "EM_ROTA", "TRANSITO": "EM_ROTA", "CAMINHO": "EM_ROTA",
@@ -231,30 +300,40 @@ def normalizar_status_por_modulo(valor, nome_aba, original):
         "PRESENTE": "PRESENTE", "RECEBIDO": "RECEBIDO", "CONFERIDO": "CONFERIDO"
     }
 
-    status_encontrado = mapa_geral.get(s_lookup, s_lookup)
-    mod = detectar_modulo_por_aba(nome_aba)
+    status_permitidos = regras.get(mod, [])
 
-    regras = {
-        "OBRAS": ["EM_ANDAMENTO", "PARALISADA", "CONCLUIDA", "CANCELADA"],
-        "EQUIPE": ["ATIVO", "INATIVO", "FERIAS", "AFASTADO", "PRESENTE", "FALTA"],
-        "VEICULOS": ["DISPONIVEL", "EM_USO", "MANUTENCAO", "INATIVO"],
-        "MATERIAIS": ["EM_ESTOQUE", "BAIXO_ESTOQUE", "ESGOTADO", "RESERVADO"],
-        "ENTREGAS": ["PENDENTE", "EM_ROTA", "ENTREGUE", "ATRASADA", "CANCELADA", "RECEBIDO", "CONFERIDO"]
-    }
-
-    if mod in regras:
-        if status_encontrado in regras[mod]:
-            msg = f"Status normalizado para o padrão do módulo" if s_lookup != status_encontrado else None
-            return {"ok": True, "valor": status_encontrado, "motivo": msg, "original": original}
-        else:
-            if status_encontrado in mapa_geral.values():
-                return {"ok": True, "valor": status_encontrado, "motivo": "Status aceito por normalização contextual (Tolerância global)", "original": original}
-            if len(s_lookup) > 1:
-                return {"ok": True, "valor": status_encontrado, "motivo": f"Status mantido por tolerância (Fora do padrão conhecido)", "original": original}
-            msg_nome_modulo = mod.capitalize() if mod != "OBRAS" else "Obras"
-            return {"ok": False, "valor": "INVÁLIDO", "motivo": f"Status vazio ou ilegível não reconhecido no módulo {msg_nome_modulo}", "original": original}
-    else:
+    # Se o módulo não possui regras estritas, aplica mapeamento geral
+    if not status_permitidos:
+        status_encontrado = mapa_geral.get(s_lookup, s_lookup)
         return {"ok": True, "valor": status_encontrado, "motivo": "Status aceito por normalização contextual (Módulo genérico)", "original": original}
+
+    # PASSO 1: Short-Circuit no Schema (O Bug da EQUIPE vs MATERIAIS resolvido aqui)
+    if s_lookup in status_permitidos:
+        return {"ok": True, "valor": s_lookup, "motivo": None, "original": original}
+
+    # PASSO 2: Mapeamento Contextual 
+    mapa_modulo = mapas_contextuais.get(mod, {})
+    if s_lookup in mapa_modulo:
+        val_contextual = mapa_modulo[s_lookup]
+        if val_contextual in status_permitidos:
+            return {"ok": True, "valor": val_contextual, "motivo": "Status normalizado por regra de módulo", "original": original}
+
+    # PASSO 3: Fallback Global Seguro
+    if s_lookup in mapa_geral:
+        val_global = mapa_geral[s_lookup]
+        if val_global in status_permitidos:
+            msg = f"Status normalizado para o padrão do módulo" if s_lookup != val_global else None
+            return {"ok": True, "valor": val_global, "motivo": msg, "original": original}
+
+    # PASSO 4: Comportamento Legado (Tolerâncias gerais)
+    status_encontrado = mapa_geral.get(s_lookup, s_lookup)
+    if status_encontrado in mapa_geral.values():
+        return {"ok": True, "valor": status_encontrado, "motivo": "Status aceito por normalização contextual (Tolerância global)", "original": original}
+    if len(s_lookup) > 1:
+        return {"ok": True, "valor": status_encontrado, "motivo": "Status mantido por tolerância (Fora do padrão conhecido)", "original": original}
+        
+    msg_nome_modulo = mod.capitalize() if mod != "OBRAS" else "Obras"
+    return {"ok": False, "valor": "INVÁLIDO", "motivo": f"Status vazio ou ilegível não reconhecido no módulo {msg_nome_modulo}", "original": original}
 
 LIMITE_ORDENACAO_LINHAS = 15000
 LIMITE_MODO_RAPIDO_LINHAS = 3000
@@ -283,6 +362,7 @@ BASE_COLUNAS_VALIDACAO = {
     "material": {"aliases": ["material", "nome_material", "produto", "item", "descrição"], "tipo": "texto", "required": False, "regras": {"min_len": 2, "max_len": 255}},
     "unidade": {"aliases": ["unidade", "und", "unid", "medida", "ud"], "tipo": "texto", "required": False, "regras": {"min_len": 1, "max_len": 20}},
     "hora_chegada": {"aliases": ["hora_chegada", "chegada", "entrada", "h_chegada", "hora_entrada"], "tipo": "hora", "required": False, "regras": {}},
+    "hora_saida": {"aliases": ["hora_saida", "saida", "saída", "h_saida", "hora_termino", "termino"], "tipo": "hora", "required": False, "regras": {}},
     "hora_prevista": {"aliases": ["hora_prevista", "prevista", "h_prevista", "entrada_prevista"], "tipo": "hora", "required": False, "regras": {}},
     "falta": {"aliases": ["falta", "faltou", "ausencia"], "tipo": "texto", "required": False, "regras": {}},
     "atrasado": {"aliases": ["atrasado", "atraso"], "tipo": "texto", "required": False, "regras": {}},
@@ -447,33 +527,11 @@ def auto_ajustar_largura(ws):
     hr, ds, de, cs, ce = info.get("header_row"), info.get("data_start"), info.get("data_end"), info.get("col_start"), info.get("col_end")
     if not hr or cs is None or ce is None or cs > ce: return
 
-    larguras_especiais = {
-        "nome": 22,
-        "nome_completo": 26,
-        "telefone": 18,
-        "status": 18,
-        "obra": 22,
-        "cidade": 20,
-        "estado": 12,
-        "endereco": 28,
-        "email": 28,
-        "cpf": 18,
-        "cnpj": 22,
-        "placa": 14,
-        "data": 16,
-        "valor": 18,
-        "quantidade": 16,
-        "servico": 28,
-        "descricao": 28,
-        "observacao": 30,
-        "pendencia": 28,
-        "encarregado": 22,
-        "equipe": 20,
-    }
-
     for col in range(cs, ce + 1):
         header_val = str(ws.cell(row=hr, column=col).value or "").strip()
-        header_norm = normalizar_nome_coluna(header_val)
+        canonico = resolver_coluna_canonica(header_val)
+        tipo = obter_schema_coluna(canonico).get("tipo") if canonico else None
+        
         max_len = len(header_val)
 
         for row in range(ds, min(de, ds + LIMITE_AMOSTRA_LARGURA) + 1):
@@ -482,9 +540,14 @@ def auto_ajustar_largura(ws):
             if maior_linha > max_len: max_len = maior_linha
 
         largura_base = max_len + 8
-        largura_minima_especial = next((v for k, v in larguras_especiais.items() if k in header_norm), None)
         largura_ideal = max(16, min(largura_base, 52))
-        if largura_minima_especial: largura_ideal = max(largura_ideal, largura_minima_especial)
+
+        if tipo == "hora": largura_ideal = max(largura_ideal, 16)
+        elif tipo == "data": largura_ideal = max(largura_ideal, 18)
+        elif tipo in ["moeda", "decimal"]: largura_ideal = max(largura_ideal, 20)
+        elif tipo == "texto_nome": largura_ideal = max(largura_ideal, 26)
+        elif tipo in ["cpf", "cnpj", "telefone_br"]: largura_ideal = max(largura_ideal, 20)
+        elif tipo == "email": largura_ideal = max(largura_ideal, 28)
 
         ws.column_dimensions[get_column_letter(col)].width = largura_ideal
 
@@ -549,6 +612,7 @@ def validar_e_transformar_valor(canonico, valor, nome_aba=None):
     regras = schema.get("regras", {})
 
     if not tipo: return {"ok": True, "valor": valor, "motivo": None, "original": original}
+    
     if valor_vazio(valor):
         if schema.get("required"): return {"ok": False, "valor": "INVÁLIDO", "motivo": "Campo obrigatório vazio", "original": original}
         return {"ok": True, "valor": None, "motivo": None, "original": original}
@@ -559,20 +623,20 @@ def validar_e_transformar_valor(canonico, valor, nome_aba=None):
         if len(s) < regras.get("min_len", 1) or len(s) > regras.get("max_len", 255): return {"ok": False, "valor": "INVÁLIDO", "motivo": "Texto fora do tamanho permitido", "original": original}
         return {"ok": True, "valor": s, "motivo": "Espaços corrigidos" if s != original else None, "original": original}
 
-    if tipo == "texto_nome":
+    elif tipo == "texto_nome":
         s = normalizar_texto(valor)
         if not s: return {"ok": False, "valor": "INVÁLIDO", "motivo": "Nome vazio", "original": original}
         if len(s) < regras.get("min_len", 2): return {"ok": False, "valor": "INVÁLIDO", "motivo": "Nome muito curto", "original": original}
         novo = s.title()
         return {"ok": True, "valor": novo, "motivo": "Caixa padronizada" if novo != original else None, "original": original}
 
-    if tipo == "inteiro":
+    elif tipo == "inteiro":
         num = parse_inteiro(valor)
         if num is None: return {"ok": False, "valor": "INVÁLIDO", "motivo": "Inteiro inválido", "original": original}
         if not validar_limite_por_schema(schema, num): return {"ok": False, "valor": "INVÁLIDO", "motivo": "Valor fora do limite permitido", "original": original}
         return {"ok": True, "valor": num, "motivo": None, "original": original}
 
-    if tipo == "quantidade_inteligente":
+    elif tipo == "quantidade_inteligente":
         s = str(valor).strip()
         match = re.search(r'\d+', s)
         if not match: return {"ok": False, "valor": "INVÁLIDO", "motivo": "Não foi possível extrair número", "original": original}
@@ -582,53 +646,53 @@ def validar_e_transformar_valor(canonico, valor, nome_aba=None):
         msg = f"Quantidade filtrada automaticamente" if str(num) != s else None
         return {"ok": True, "valor": num, "motivo": msg, "original": original}
 
-    if tipo == "placa_veiculo":
+    elif tipo == "placa_veiculo":
         p_formatada = normalizar_placa(valor)
         msg = "Placa padronizada visualmente" if str(original) != str(p_formatada) else None
         return {"ok": True, "valor": p_formatada, "motivo": msg, "original": original}
 
-    if tipo in ["decimal", "moeda"]:
+    elif tipo in ["decimal", "moeda"]:
         num = parse_decimal_br(valor)
         if num is None: return {"ok": False, "valor": "INVÁLIDO", "motivo": "Valor monetário/decimal inválido", "original": original}
         num_float = float(num)
         if not validar_limite_por_schema(schema, num_float): return {"ok": False, "valor": "INVÁLIDO", "motivo": "Valor fora do limite", "original": original}
         return {"ok": True, "valor": num_float, "motivo": None, "original": original}
 
-    if tipo == "cpf":
+    elif tipo == "cpf":
         dig = apenas_digitos(valor)
         if len(dig) != 11: return {"ok": False, "valor": "INVÁLIDO", "motivo": "CPF precisa ter 11 dígitos", "original": original}
         if regras.get("validar_digitos", True) and not cpf_valido(dig): return {"ok": False, "valor": "INVÁLIDO", "motivo": "CPF inválido", "original": original}
         return {"ok": True, "valor": formatar_cpf(dig) if regras.get("formatar_saida", True) else dig, "motivo": None, "original": original}
 
-    if tipo == "cnpj":
+    elif tipo == "cnpj":
         dig = apenas_digitos(valor)
         if len(dig) != 14: return {"ok": False, "valor": "INVÁLIDO", "motivo": "CNPJ precisa ter 14 dígitos", "original": original}
         if regras.get("validar_digitos", True) and not cnpj_valido(dig): return {"ok": False, "valor": "INVÁLIDO", "motivo": "CNPJ inválido", "original": original}
         return {"ok": True, "valor": formatar_cnpj(dig) if regras.get("formatar_saida", True) else dig, "motivo": None, "original": original}
 
-    if tipo == "cep_br":
+    elif tipo == "cep_br":
         dig = apenas_digitos(valor)
         if len(dig) != 8: return {"ok": False, "valor": "INVÁLIDO", "motivo": "CEP inválido", "original": original}
         return {"ok": True, "valor": formatar_cep(dig), "motivo": None, "original": original}
 
-    if tipo == "telefone_br":
+    elif tipo == "telefone_br":
         dig = apenas_digitos(valor)
         fmt = formatar_telefone_br(dig)
         if not fmt: return {"ok": False, "valor": "INVÁLIDO", "motivo": "Telefone inválido", "original": original}
         return {"ok": True, "valor": fmt, "motivo": None, "original": original}
 
-    if tipo == "email":
+    elif tipo == "email":
         s = re.sub(r"[^a-z0-9._\-@]", "", str(valor or "").lower().replace(" ", ""))
         if eh_email_valido(s): return {"ok": True, "valor": s, "motivo": None, "original": original}
         return {"ok": False, "valor": "INVÁLIDO", "motivo": "E-mail inválido", "original": original}
 
-    if tipo == "uf_br":
+    elif tipo == "uf_br":
         s_lookup = _remover_acentos(normalizar_texto(valor)).lower()
         s = MAPA_ESTADOS_POR_NOME.get(s_lookup, s_lookup.upper())
         if s in UF_VALIDAS: return {"ok": True, "valor": s, "motivo": None, "original": original}
         return {"ok": False, "valor": "INVÁLIDO", "motivo": "UF inválida", "original": original}
 
-    if tipo in ["data", "data_hora"]:
+    elif tipo in ["data", "data_hora"]:
         dt = _converter_texto_para_data(valor)
         if dt is None: return {"ok": False, "valor": "INVÁLIDO", "motivo": "Data inválida ou formato desconhecido", "original": original}
         if regras.get("nao_permitir_futuro", False) and dt.date() > datetime.now().date(): return {"ok": False, "valor": "INVÁLIDO", "motivo": "Data futura não permitida", "original": original}
@@ -636,18 +700,7 @@ def validar_e_transformar_valor(canonico, valor, nome_aba=None):
         if ano_min is not None and dt.year < ano_min: return {"ok": False, "valor": "INVÁLIDO", "motivo": "Data muito antiga", "original": original}
         return {"ok": True, "valor": dt, "motivo": "Data padronizada" if isinstance(original, str) else None, "original": original}
 
-    if tipo == "hora":
-        if isinstance(valor, time): return {"ok": True, "valor": valor, "motivo": None, "original": original}
-        if isinstance(valor, datetime): return {"ok": True, "valor": valor.time(), "motivo": None, "original": original}
-        if isinstance(valor, str):
-            try:
-                for fmt in ("%H:%M:%S", "%H:%M"):
-                    try: return {"ok": True, "valor": datetime.strptime(valor.strip(), fmt).time(), "motivo": "Hora formatada", "original": original}
-                    except ValueError: pass
-            except: pass
-        return {"ok": False, "valor": "INVÁLIDO", "motivo": "Formato de hora desconhecido", "original": original}
-
-    if tipo == "lista":
+    elif tipo == "lista":
         if canonico == "status": return normalizar_status_por_modulo(valor, nome_aba, original)
         return {"ok": True, "valor": valor, "motivo": None, "original": original}
 
@@ -739,38 +792,89 @@ def validar_sheet(ws, ws_inc):
         for col, rel_idx in zip(colunas_validadas, colunas_relativas):
             cell, meta = row_cells[rel_idx], colunas_map[col]
             valor_antes = cell.value
-            res = validar_e_transformar_valor(meta["canonico"], valor_antes, nome_aba=ws.title)
-            linha_ctx[meta["canonico"]] = {
-                "cell": cell, "meta": meta, "v_orig": valor_antes,
-                "v_atual": res.get("valor"), "ok": res.get("ok", True),
-                "motivo": res.get("motivo"),
-                "corrigido": (str(valor_antes) != str(res.get("valor")) and res.get("ok", True))
-            }
+            
+            # Deixamos o motor "hora" ser executado e validado no bloco especial abaixo, 
+            # não precisando passar pelo validador_e_transformar_valor original.
+            if obter_schema_coluna(meta["canonico"]).get("tipo") != "hora":
+                res = validar_e_transformar_valor(meta["canonico"], valor_antes, nome_aba=ws.title)
+                linha_ctx[meta["canonico"]] = {
+                    "cell": cell, "meta": meta, "v_orig": valor_antes,
+                    "v_atual": res.get("valor"), "ok": res.get("ok", True),
+                    "motivo": res.get("motivo"),
+                    "corrigido": (str(valor_antes) != str(res.get("valor")) and res.get("ok", True))
+                }
 
         if modulo_ativo in VALIDADORES_MODULO:
             VALIDADORES_MODULO[modulo_ativo](linha_ctx)
 
-        for canonico, dados in linha_ctx.items():
-            cell, meta, v_orig, v_atual = dados["cell"], dados["meta"], dados["v_orig"], dados["v_atual"]
-            if valor_vazio(v_orig) and not meta["required"]: continue
+        # Loop principal das células validadas
+        for col, rel_idx in zip(colunas_validadas, colunas_relativas):
+            cell, meta = row_cells[rel_idx], colunas_map[col]
+            v_orig = cell.value
+            canonico = meta["canonico"]
+            schema = obter_schema_coluna(canonico)
+            tipo = schema.get("tipo")
 
-            if not dados.get("ok", True):
-                total_invalidos += 1
-                if _set_cell_if_changed(cell, "INVÁLIDO") or v_orig == "INVÁLIDO":
-                    msg_erro = dados.get("motivo") or "Fora do padrão"
-                    cell.comment = Comment(msg_erro, "Data Studio V8")
-                    registrar_inconsistencia(ws_inc, ws.title, idx_linha, meta["nome_original"], v_orig, "INVÁLIDO", "INVÁLIDO", msg_erro)
-            else:
-                if _set_cell_if_changed(cell, v_atual):
-                    total_corrigidos += 1
-                    if logar_correcao and dados.get("corrigido"):
-                        registrar_inconsistencia(ws_inc, ws.title, idx_linha, meta["nome_original"], v_orig, v_atual, "CORRIGIDO", dados.get("motivo") or "Normalização de Formato Automática")
+            # 👇 INJEÇÃO EXATA NO LOOP PRINCIPAL CONFORME SOLICITADO
+            if tipo == "hora":
+                hora = processar_hora(v_orig)
+
+                if hora:
+                    cell.value = hora
+                    cell.number_format = "hh:mm"
+                    if str(v_orig) != str(hora):
+                        total_corrigidos += 1
+                        if logar_correcao:
+                            registrar_inconsistencia(ws_inc, ws.title, idx_linha, meta["nome_original"], v_orig, hora, "CORRIGIDO", "Normalização de Hora Automática")
+                else:
+                    if not valor_vazio(v_orig) or schema.get("required"):
+                        cell.value = None  # evita 1899
+                        total_invalidos += 1
+                        
+                        registrar_inconsistencia(
+                            ws_inc,
+                            ws.title,
+                            idx_linha,
+                            meta["nome_original"],
+                            v_orig,
+                            None,
+                            "INVÁLIDO",
+                            "Hora inválida"
+                        )
+                        cell.comment = Comment("Hora inválida", "Data Studio V8")
+                continue
+
+            # Processamento Padrão que vem do linha_ctx
+            if canonico in linha_ctx:
+                dados = linha_ctx[canonico]
+                if valor_vazio(v_orig) and not meta["required"]: continue
+
+                if not dados.get("ok", True):
+                    total_invalidos += 1
+                    if _set_cell_if_changed(cell, "INVÁLIDO") or v_orig == "INVÁLIDO":
+                        msg_erro = dados.get("motivo") or "Fora do padrão"
+                        cell.comment = Comment(msg_erro, "Data Studio V8")
+                        registrar_inconsistencia(ws_inc, ws.title, idx_linha, meta["nome_original"], v_orig, "INVÁLIDO", "INVÁLIDO", msg_erro)
+                else:
+                    if _set_cell_if_changed(cell, dados["v_atual"]):
+                        total_corrigidos += 1
+                        if logar_correcao and dados.get("corrigido"):
+                            registrar_inconsistencia(ws_inc, ws.title, idx_linha, meta["nome_original"], v_orig, dados["v_atual"], "CORRIGIDO", dados.get("motivo") or "Normalização de Formato Automática")
 
     return {"total_colunas_mapeadas": len(colunas_map), "total_invalidos": total_invalidos, "total_corrigidos": total_corrigidos}
 
 def ordenar_por_data_na_planilha(ws, hr, ds, de, cs, ce):
     if not hr or ds > de or (de - ds + 1) > LIMITE_ORDENACAO_LINHAS: return
-    col_data = next((col for col in range(cs, ce + 1) if "data" in str(ws.cell(hr, col).value or "").strip().lower()), None)
+    
+    modulo_ativo = detectar_modulo_por_aba(ws.title)
+    col_data = None
+    
+    for col in range(cs, ce + 1):
+        canonico = resolver_coluna_canonica(ws.cell(hr, col).value, modulo_ativo)
+        if canonico and obter_schema_coluna(canonico).get("tipo") in ["data", "data_hora"]:
+            col_data = col
+            break
+
     if not col_data: return
     linhas, encontrou_data = [], False
     for row in range(ds, de + 1):
@@ -827,23 +931,24 @@ def _obter_cor_status(val_status_str):
     chave = str(val_status_str).strip().upper().replace(" ", "_") if val_status_str else ""
     return _CACHE_FILLS_STATUS.get(chave, (None, None))
 
-def _aplicar_coloracao_celula(cell, valor, row_fill, normal_font, col, status_col_idx, moeda_cols, is_linha_par, modo_rapido):
+def _aplicar_coloracao_celula(cell, valor, row_fill, normal_font, canonico, status_col_idx, tipo, is_linha_par, modo_rapido):
     if valor == "INVÁLIDO":
         cell.fill = _FILL_ERRO
         cell.font = _FONT_ERRO
         cell.alignment = _ALIGN_ERRO
         return _FILL_ERRO
-    if col == status_col_idx:
+    if canonico == "status":
         fill_s, font_s = _obter_cor_status(valor)
         if fill_s is not None:
             cell.fill = fill_s
             cell.font = font_s
             cell.alignment = Alignment(horizontal="center", vertical="center")
             return fill_s
-    if col in moeda_cols and not modo_rapido:
+    if tipo in ["moeda", "decimal"] and not modo_rapido:
         cell.fill = _FILL_MOEDA_PAR if is_linha_par else _FILL_MOEDA_IMPAR
         cell.font = normal_font
         return cell.fill
+    
     cell.fill = row_fill
     cell.font = normal_font
     return row_fill
@@ -871,24 +976,29 @@ def formatar_sheet(ws, tema_nome, ordenar=True):
     header_font = _font(bold=True, size=11, color=t["header_fg"])
     normal_font = _font(size=10, color="202124")
 
+    modulo_ativo = detectar_modulo_por_aba(ws.title)
+    
+    colunas_meta = {}
     status_col_idx = None
-    cabecalhos, data_cols, moeda_cols, centro_cols = {}, set(), set(), set()
-    palavras_centro = ["unidade", "status", "placa", "tempo", "chegada", "saída", "saida", "hora", "min", "prazo", "uf", "estado"]
-
+    
     if hr:
         ws.row_dimensions[hr].height = 36
         for col in range(cs, ce + 1):
             cell = ws.cell(hr, col)
             if isinstance(cell.value, str): cell.value = cell.value.strip().title()
-            cabecalho = str(cell.value or "").strip().lower()
-            cabecalhos[col] = cabecalho
+            
+            nome_coluna = str(cell.value or "")
+            canonico = resolver_coluna_canonica(nome_coluna, modulo_ativo)
+            schema = obter_schema_coluna(canonico) if canonico else {}
+            tipo = schema.get("tipo")
+            
+            if canonico == "status": status_col_idx = col
 
-            if cabecalho == "status" or "situação" in cabecalho or "situacao" in cabecalho:
-                status_col_idx = col
-
-            if "data" in cabecalho: data_cols.add(col)
-            if any(p in cabecalho for p in ["r$", "custo", "valor", "preço"]): moeda_cols.add(col)
-            if any(p in cabecalho for p in palavras_centro): centro_cols.add(col)
+            colunas_meta[col] = {
+                "canonico": canonico,
+                "tipo": tipo,
+                "centralizar": tipo in ["hora", "data", "data_hora", "uf_br", "placa_veiculo", "lista", "cep_br", "telefone_br"] or canonico in ["unidade", "idade"]
+            }
 
             cell.fill      = header_fill
             cell.font      = header_font
@@ -905,14 +1015,19 @@ def formatar_sheet(ws, tema_nome, ordenar=True):
         for col in range(cs, ce + 1):
             cell  = ws.cell(row, col)
             valor = cell.value
+            
+            meta = colunas_meta.get(col, {})
+            tipo = meta.get("tipo")
+            canonico = meta.get("canonico")
 
-            if not modo_rapido and isinstance(valor, (datetime, date)) and valor.year <= 1905:
-                valor_dt = datetime.combine(valor, datetime.min.time()) if isinstance(valor, date) and not isinstance(valor, datetime) else valor
-                delta = valor_dt - datetime(1899, 12, 30)
-                num = delta.days + (delta.seconds / 86400.0)
-                valor = cell.value = int(num) if num.is_integer() else num
+            if not modo_rapido and isinstance(valor, (datetime, date)) and not isinstance(valor, time) and tipo != "hora":
+                if valor.year <= 1905:
+                    valor_dt = datetime.combine(valor, datetime.min.time()) if isinstance(valor, date) and not isinstance(valor, datetime) else valor
+                    delta = valor_dt - datetime(1899, 12, 30)
+                    num = delta.days + (delta.seconds / 86400.0)
+                    valor = cell.value = int(num) if num.is_integer() else num
 
-            if col in data_cols:
+            if tipo in ["data", "data_hora"]:
                 d_conv = valor if isinstance(valor, datetime) else _converter_texto_para_data(valor)
                 if d_conv is not None and d_conv.year > 1905:
                     cell.value = d_conv
@@ -920,17 +1035,22 @@ def formatar_sheet(ws, tema_nome, ordenar=True):
                     cell.alignment = Alignment(horizontal="center", vertical="center")
                 else:
                     cell.alignment = _align_indent("left", "center", wrap=not modo_rapido, indent=1)
-            elif isinstance(valor, time):
-                cell.number_format = "HH:MM"
+                    
+            elif tipo == "hora" or isinstance(valor, time):
                 cell.alignment = Alignment(horizontal="center", vertical="center")
-            elif col in moeda_cols and isinstance(valor, (int, float)):
+                if isinstance(valor, time):
+                    cell.number_format = "hh:mm"
+                    
+            elif tipo in ["moeda", "decimal"] and isinstance(valor, (int, float, Decimal)):
                 cell.alignment = Alignment(horizontal="right", vertical="center")
                 cell.number_format = "#,##0.00"
-            elif col in nc and isinstance(valor, (int, float)):
+                
+            elif col in nc and isinstance(valor, (int, float, Decimal)):
                 cell.alignment = Alignment(horizontal="right", vertical="center")
                 cell.number_format = "#,##0.00" if isinstance(valor, float) and valor != int(valor) else "#,##0"
+                
             else:
-                if col in centro_cols:
+                if meta.get("centralizar"):
                     cell.alignment = Alignment(horizontal="center", vertical="center", wrap_text=not modo_rapido)
                 else:
                     cell.alignment = _align_indent("left", "center", wrap=not modo_rapido, indent=1)
@@ -939,7 +1059,7 @@ def formatar_sheet(ws, tema_nome, ordenar=True):
 
             _aplicar_coloracao_celula(
                 cell, valor, row_fill, normal_font,
-                col, status_col_idx, moeda_cols, is_linha_par, modo_rapido
+                canonico, status_col_idx, tipo, is_linha_par, modo_rapido
             )
 
             if not modo_rapido and row <= limite_amostra:
@@ -1048,7 +1168,6 @@ def criar_resumo_consolidacao(wb, arquivos_usados, total_linhas, resumo_categori
     ws.column_dimensions["B"].width = 35
     ws.column_dimensions["C"].width = 20
     ws.column_dimensions["D"].width = 45
-
 
 def _noop(*args, **kwargs):
     pass
