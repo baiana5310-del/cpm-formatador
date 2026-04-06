@@ -19,6 +19,7 @@ def home():
 @app.route("/processar", methods=["POST"])
 def processar():
     arquivos = request.files.getlist("arquivos")
+    tema = request.form.get("tema", "🔵 Azul Executivo")
 
     if not arquivos or arquivos[0].filename == "":
         return jsonify({"erro": "Nenhum arquivo enviado"}), 400
@@ -33,8 +34,13 @@ def processar():
 
     try:
         print("📥 Arquivos recebidos:", caminhos)
+        print("🎨 Tema recebido:", tema)
 
-        saida = processar_arquivos(caminhos, str(OUTPUT_DIR))
+        saida = processar_arquivos(
+            caminhos,
+            str(OUTPUT_DIR),
+            tema=tema
+        )
         saida_path = Path(saida)
 
         print("📤 Arquivo gerado:", saida_path)
