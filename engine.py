@@ -10,7 +10,7 @@ from decimal import Decimal, InvalidOperation
 from datetime import date, datetime, time
 
 from openpyxl import load_workbook, Workbook
-from openpyxl.styles import Font, PatternFill, Alignment, Border, Side
+from openpyxl.styles import Font, PatternFill, Alignment, Border, Side, GradientFill
 from openpyxl.utils import get_column_letter
 from openpyxl.utils.exceptions import InvalidFileException
 from openpyxl.comments import Comment
@@ -23,52 +23,203 @@ logging.basicConfig(
     datefmt="%d/%m/%Y %H:%M:%S"
 )
 
+# ─────────────────────────────────────────────────────────────────────────────
+#  SISTEMA DE TEMAS — REDESENHADO PARA IMPACTO MÁXIMO
+#  Filosofia: cada tema é uma identidade completa, não apenas uma cor.
+#  Inspiração: dashboards de SaaS premium, relatórios de consultoria top-tier.
+# ─────────────────────────────────────────────────────────────────────────────
+
 TEMAS = {
+    # ── SLATE EXECUTIVE ─────────────────────────────────────────────────────
+    # Tom âncora: azul-ardósia profundo. Transmite autoridade silenciosa.
+    # Acento: índigo brilhante. Toca de sofisticação técnica.
     "🔵 Azul Executivo": {
-        "header_bg": "0F2B46", "header_fg": "FFFFFF", "accent_light": "F4F7FA",
-        "totals_bg": "0A1C2E", "totals_fg": "FFFFFF", "border": "D2DEE8",
-        "title_fg": "0F2B46", "tab_color": "0F2B46", "ui_color": "#2563EB", "ui_hover": "#1D4ED8"
+        # Cabeçalho — fundo quase-preto com toque azul para profundidade
+        "header_bg":       "0D1B2A",
+        "header_fg":       "F0F4FF",
+        # Linha alternada — quase branco com frescor azulado
+        "accent_light":    "F7F9FC",
+        # Linha branca — branco puro (contraste limpo)
+        "row_white":       "FFFFFF",
+        # Linha de totais — navy intenso
+        "totals_bg":       "0D1B2A",
+        "totals_fg":       "FFFFFF",
+        # Bordas — cinza azulado muito sutil
+        "border":          "DDE3ED",
+        "border_strong":   "0D1B2A",
+        # Linha zebra — toque de azul gelado
+        "zebra":           "F0F4FB",
+        # Títulos nos painéis
+        "title_fg":        "0D1B2A",
+        # Tab da aba
+        "tab_color":       "1A3A5C",
+        # Acento decorativo — índigo vibrante
+        "accent_color":    "1D4ED8",
+        # Subtítulos / labels nos painéis
+        "label_fg":        "64748B",
+        # Fundo do painel Dashboard
+        "panel_bg":        "F0F4FB",
+        # Borda do card no Dashboard
+        "card_border":     "C7D4E8",
+        # Número/métrica nos cards
+        "metric_fg":       "0D1B2A",
+        # Cabeçalho sub linha (linha de grupo)
+        "subheader_bg":    "1E3A5F",
+        "subheader_fg":    "E8EFF8",
+        # UI
+        "ui_color":        "#1D4ED8",
+        "ui_hover":        "#1E3A8A",
     },
+
+    # ── OBSIDIAN MINIMAL ────────────────────────────────────────────────────
+    # Fundo quase-carvão. Tipografia branca crua. Zero decoração. Máxima clareza.
     "⚫ Grafite Minimalista": {
-        "header_bg": "212529", "header_fg": "FFFFFF", "accent_light": "F8F9FA",
-        "totals_bg": "131517", "totals_fg": "FFFFFF", "border": "DEE2E6",
-        "title_fg": "212529", "tab_color": "212529", "ui_color": "#4B5563", "ui_hover": "#374151"
+        "header_bg":       "111827",
+        "header_fg":       "F9FAFB",
+        "accent_light":    "F9FAFB",
+        "row_white":       "FFFFFF",
+        "totals_bg":       "030712",
+        "totals_fg":       "FFFFFF",
+        "border":          "E5E7EB",
+        "border_strong":   "111827",
+        "zebra":           "F3F4F6",
+        "title_fg":        "111827",
+        "tab_color":       "1F2937",
+        "accent_color":    "374151",
+        "label_fg":        "6B7280",
+        "panel_bg":        "F3F4F6",
+        "card_border":     "D1D5DB",
+        "metric_fg":       "111827",
+        "subheader_bg":    "1F2937",
+        "subheader_fg":    "F3F4F6",
+        "ui_color":        "#374151",
+        "ui_hover":        "#1F2937",
     },
+
+    # ── EMERALD PRESTIGE ────────────────────────────────────────────────────
+    # Verde-floresta elegante. Ativa sensação de crescimento, solidez financeira.
     "🟢 Verde Safira": {
-        "header_bg": "113826", "header_fg": "FFFFFF", "accent_light": "F2F7F4",
-        "totals_bg": "0A2417", "totals_fg": "FFFFFF", "border": "CFE0D6",
-        "title_fg": "113826", "tab_color": "113826", "ui_color": "#10B981", "ui_hover": "#059669"
+        "header_bg":       "052E16",
+        "header_fg":       "F0FDF4",
+        "accent_light":    "F0FDF4",
+        "row_white":       "FFFFFF",
+        "totals_bg":       "052E16",
+        "totals_fg":       "FFFFFF",
+        "border":          "D1FAE5",
+        "border_strong":   "052E16",
+        "zebra":           "ECFDF5",
+        "title_fg":        "052E16",
+        "tab_color":       "065F46",
+        "accent_color":    "059669",
+        "label_fg":        "4B5563",
+        "panel_bg":        "ECFDF5",
+        "card_border":     "A7F3D0",
+        "metric_fg":       "052E16",
+        "subheader_bg":    "064E3B",
+        "subheader_fg":    "D1FAE5",
+        "ui_color":        "#059669",
+        "ui_hover":        "#047857",
     },
+
+    # ── AMETHYST DEEP TECH ──────────────────────────────────────────────────
+    # Roxo ultradeep. Sensação de tecnologia futurista com sofisticação.
     "🟣 Roxo Deep Tech": {
-        "header_bg": "2D1B4E", "header_fg": "FFFFFF", "accent_light": "F6F4F9",
-        "totals_bg": "1D1033", "totals_fg": "FFFFFF", "border": "DED5EB",
-        "title_fg": "2D1B4E", "tab_color": "2D1B4E", "ui_color": "#8B5CF6", "ui_hover": "#6D28D9"
+        "header_bg":       "1E0938",
+        "header_fg":       "F5F3FF",
+        "accent_light":    "FAF5FF",
+        "row_white":       "FFFFFF",
+        "totals_bg":       "0D0621",
+        "totals_fg":       "FFFFFF",
+        "border":          "EDE9FE",
+        "border_strong":   "1E0938",
+        "zebra":           "F5F3FF",
+        "title_fg":        "1E0938",
+        "tab_color":       "4C1D95",
+        "accent_color":    "7C3AED",
+        "label_fg":        "6D28D9",
+        "panel_bg":        "F5F3FF",
+        "card_border":     "DDD6FE",
+        "metric_fg":       "1E0938",
+        "subheader_bg":    "2E1065",
+        "subheader_fg":    "EDE9FE",
+        "ui_color":        "#7C3AED",
+        "ui_hover":        "#6D28D9",
     },
+
+    # ── COGNAC HERITAGE ─────────────────────────────────────────────────────
+    # Marrom mogno + creme. Ativado para relatórios executivos tradicionais.
     "🟤 Marrom Heritage": {
-        "header_bg": "3E2723", "header_fg": "FFFFFF", "accent_light": "F8F6F4",
-        "totals_bg": "261714", "totals_fg": "FFFFFF", "border": "E3DCD5",
-        "title_fg": "3E2723", "tab_color": "3E2723", "ui_color": "#9CA3AF", "ui_hover": "#6B7280"
-    }
+        "header_bg":       "1C0A00",
+        "header_fg":       "FEF9F0",
+        "accent_light":    "FEFCE8",
+        "row_white":       "FFFFFF",
+        "totals_bg":       "0E0500",
+        "totals_fg":       "FEF9F0",
+        "border":          "F3E8C0",
+        "border_strong":   "1C0A00",
+        "zebra":           "FDFAF0",
+        "title_fg":        "1C0A00",
+        "tab_color":       "44200E",
+        "accent_color":    "92400E",
+        "label_fg":        "78350F",
+        "panel_bg":        "FEFCE8",
+        "card_border":     "FDE68A",
+        "metric_fg":       "1C0A00",
+        "subheader_bg":    "3B1506",
+        "subheader_fg":    "FEF3C7",
+        "ui_color":        "#92400E",
+        "ui_hover":        "#78350F",
+    },
 }
 
-def _fill(hex_color):
+
+# ─────────────────────────────────────────────────────────────────────────────
+#  UTILITÁRIOS DE ESTILO — Funções de factory refinadas
+# ─────────────────────────────────────────────────────────────────────────────
+
+def _fill(hex_color: str) -> PatternFill:
     return PatternFill("solid", fgColor=hex_color)
 
-def _font(bold=False, size=10, color="000000", italic=False, name="Aptos"):
+
+def _font(bold=False, size=10, color="000000", italic=False, name="Calibri"):
+    """
+    Fonte padrão: Calibri (universal, limpa, disponível em qualquer Windows/Mac).
+    Para cabeçalhos: Calibri Bold size 11 dá presença sem peso excessivo.
+    """
     return Font(name=name, bold=bold, size=size, color=color, italic=italic)
 
-def _border(color="E5E7EB", style="thin"):
+
+def _border(color="E5E7EB", style="thin") -> Border:
     s = Side(border_style=style, color=color)
     return Border(left=s, right=s, top=s, bottom=s)
 
-def _align(h="left", v="center", wrap=False):
+
+def _border_full(left_color, right_color, top_color, bottom_color,
+                 left_style="thin", right_style="thin",
+                 top_style="thin", bottom_style="thin") -> Border:
+    return Border(
+        left=Side(border_style=left_style, color=left_color),
+        right=Side(border_style=right_style, color=right_color),
+        top=Side(border_style=top_style, color=top_color),
+        bottom=Side(border_style=bottom_style, color=bottom_color),
+    )
+
+
+def _align(h="left", v="center", wrap=False) -> Alignment:
     return Alignment(horizontal=h, vertical=v, wrap_text=wrap)
 
-def _align_indent(h="left", v="center", wrap=False, indent=1):
+
+def _align_indent(h="left", v="center", wrap=False, indent=1) -> Alignment:
     return Alignment(horizontal=h, vertical=v, wrap_text=wrap, indent=indent)
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+#  UTILITÁRIOS DE TEXTO / NORMALIZAÇÃO (preservados sem alteração)
+# ─────────────────────────────────────────────────────────────────────────────
 
 def _remover_acentos(txt: str) -> str:
     return ''.join(ch for ch in unicodedata.normalize('NFKD', str(txt)) if not unicodedata.combining(ch))
+
 
 def normalizar_nome_coluna(nome):
     s = str(nome or "").strip().lower()
@@ -79,19 +230,24 @@ def normalizar_nome_coluna(nome):
     s = s.replace(" ", "_")
     return s
 
+
 def valor_vazio(valor):
     return valor is None or str(valor).strip() == ""
 
+
 def apenas_digitos(valor):
     return ''.join(ch for ch in str(valor) if ch.isdigit())
+
 
 def normalizar_texto(valor):
     s = str(valor or "").strip()
     s = re.sub(r"\s+", " ", s)
     return s
 
+
 def normalizar_texto_upper_sem_acentos(valor):
     return _remover_acentos(normalizar_texto(valor)).upper()
+
 
 def normalizar_placa(valor):
     if valor is None or str(valor).strip() == "":
@@ -100,8 +256,10 @@ def normalizar_placa(valor):
     s = re.sub(r"\s+", "", s)
     return s
 
+
 def validar_placa(valor):
     return True
+
 
 def normalizar_status(valor):
     s = normalizar_texto_upper_sem_acentos(valor).replace(" ", "_")
@@ -113,14 +271,18 @@ def normalizar_status(valor):
     }
     return mapa.get(s, s)
 
+
 def formatar_cpf(digitos):
     return f"{digitos[:3]}.{digitos[3:6]}.{digitos[6:9]}-{digitos[9:]}"
+
 
 def formatar_cnpj(digitos):
     return f"{digitos[:2]}.{digitos[2:5]}.{digitos[5:8]}/{digitos[8:12]}-{digitos[12:]}"
 
+
 def formatar_cep(digitos):
     return f"{digitos[:5]}-{digitos[5:]}"
+
 
 def formatar_telefone_br(digitos):
     if len(digitos) == 10:
@@ -129,9 +291,11 @@ def formatar_telefone_br(digitos):
         return f"({digitos[:2]}) {digitos[2:7]}-{digitos[7:]}"
     return None
 
+
 def eh_email_valido(valor):
     s = normalizar_texto(valor)
     return re.fullmatch(r"^[A-Za-z0-9._%+\-]+@[A-Za-z0-9.\-]+\.[A-Za-z]{2,}$", s) is not None
+
 
 def parse_decimal_br(valor):
     if valor_vazio(valor): return None
@@ -151,11 +315,13 @@ def parse_decimal_br(valor):
     except (InvalidOperation, ValueError):
         return None
 
+
 def parse_inteiro(valor):
     dec = parse_decimal_br(valor)
     if dec is None: return None
     if dec != dec.to_integral_value(): return None
     return int(dec)
+
 
 def _converter_texto_para_data(valor):
     if isinstance(valor, datetime): return valor
@@ -164,29 +330,21 @@ def _converter_texto_para_data(valor):
         texto = valor.strip()
         for fmt in ("%d/%m/%Y", "%Y-%m-%d", "%d/%m/%Y %H:%M:%S", "%Y-%m-%d %H:%M:%S"):
             try:
-                dt = datetime.strptime(texto, fmt)
-                return dt
-            except ValueError: pass
+                return datetime.strptime(texto, fmt)
+            except ValueError:
+                pass
     return None
 
+
 def processar_hora(valor):
-    """
-    Motor central para tratamento inteligente e normalização de horas.
-    """
     if valor_vazio(valor): return None
-    
-    # Prevenção do erro crítico 1899 onde zero é lido como meia-noite pelo Excel
-    if valor in (0, "0"): return None 
-    
+    if valor in (0, "0"): return None
     if isinstance(valor, time): return valor
     if isinstance(valor, datetime): return valor.time()
-    
-    # Excel armazena horas como frações de dias numéricos
     if isinstance(valor, (int, float, Decimal)):
         try:
             val_float = float(valor)
             if val_float <= 0: return None
-            
             frac = val_float % 1
             total_segundos = int(round(frac * 86400))
             h = (total_segundos // 3600) % 24
@@ -195,7 +353,6 @@ def processar_hora(valor):
             return time(h, m, s)
         except (ValueError, TypeError):
             pass
-            
     if isinstance(valor, str):
         texto = valor.strip().lower()
         formatos = ["%H:%M:%S", "%H:%M", "%Hh%M", "%H:%M:%S.%f", "%I:%M %p", "%I:%M:%S %p"]
@@ -204,8 +361,6 @@ def processar_hora(valor):
                 return datetime.strptime(texto, fmt).time()
             except ValueError:
                 continue
-        
-        # Recuperação de erros comuns de digitação
         digitos = apenas_digitos(texto)
         if len(digitos) in (3, 4):
             try:
@@ -215,15 +370,17 @@ def processar_hora(valor):
                     return time(h, m)
             except ValueError:
                 pass
-                
     return None
+
 
 def linha_vazia(valores):
     return all(v is None or str(v).strip() == "" for v in valores)
 
+
 def copiar_linha(ws_destino, linha_destino, valores):
     for col_idx, valor in enumerate(valores, start=1):
         ws_destino.cell(row=linha_destino, column=col_idx, value=valor)
+
 
 def limpar_nome_aba(nome, sheetnames):
     for ch in ['\\', '/', '*', '[', ']', ':', '?']:
@@ -236,11 +393,13 @@ def limpar_nome_aba(nome, sheetnames):
         i += 1
     return nome
 
+
 def _set_cell_if_changed(cell, novo_valor):
     if cell.value != novo_valor:
         cell.value = novo_valor
         return True
     return False
+
 
 def detectar_modulo_por_aba(nome_aba):
     if not nome_aba: return "DESCONHECIDO"
@@ -252,16 +411,12 @@ def detectar_modulo_por_aba(nome_aba):
     if any(k in nome_norm for k in ["entrega", "logistica", "recebimento", "expedicao"]): return "ENTREGAS"
     return "DESCONHECIDO"
 
+
 def normalizar_status_por_modulo(valor, nome_aba, original):
-    """
-    Motor de validação de status reescrito utilizando o padrão Schema-First.
-    Garante a ausência de colisão semântica entre módulos (ex: FALTA na equipe vs FALTA de materiais).
-    """
     s_norm = normalizar_status(valor)
     s_lookup = s_norm.replace(" ", "_")
     mod = detectar_modulo_por_aba(nome_aba)
 
-    # 1. SCHEMAS GLOBAIS
     regras = {
         "OBRAS": ["EM_ANDAMENTO", "PARALISADA", "CONCLUIDA", "CANCELADA"],
         "EQUIPE": ["ATIVO", "INATIVO", "FERIAS", "AFASTADO", "PRESENTE", "FALTA"],
@@ -270,13 +425,11 @@ def normalizar_status_por_modulo(valor, nome_aba, original):
         "ENTREGAS": ["PENDENTE", "EM_ROTA", "ENTREGUE", "ATRASADA", "CANCELADA", "RECEBIDO", "CONFERIDO"]
     }
 
-    # 2. MAPAS DE DOMÍNIO (Isola os sinônimos por módulo)
     mapas_contextuais = {
         "MATERIAIS": {"ACABOU": "ESGOTADO", "ZERADO": "ESGOTADO", "FALTA": "ESGOTADO"},
         "EQUIPE": {"FALTOSO": "FALTA", "AUSENTE": "FALTA"}
     }
 
-    # 3. MAPA GLOBAL (Tratamento legado - agora atua de forma inofensiva)
     mapa_geral = {
         "PAUSADO": "PARALISADA", "PARADA": "PARALISADA", "PARALISADO": "PARALISADA", "PARALIZADA": "PARALISADA",
         "ANDAMENTO": "EM_ANDAMENTO", "EM_ANDAMENTO": "EM_ANDAMENTO", "EXECUTANDO": "EM_ANDAMENTO",
@@ -301,39 +454,34 @@ def normalizar_status_por_modulo(valor, nome_aba, original):
     }
 
     status_permitidos = regras.get(mod, [])
-
-    # Se o módulo não possui regras estritas, aplica mapeamento geral
     if not status_permitidos:
         status_encontrado = mapa_geral.get(s_lookup, s_lookup)
         return {"ok": True, "valor": status_encontrado, "motivo": "Status aceito por normalização contextual (Módulo genérico)", "original": original}
 
-    # PASSO 1: Short-Circuit no Schema (O Bug da EQUIPE vs MATERIAIS resolvido aqui)
     if s_lookup in status_permitidos:
         return {"ok": True, "valor": s_lookup, "motivo": None, "original": original}
 
-    # PASSO 2: Mapeamento Contextual 
     mapa_modulo = mapas_contextuais.get(mod, {})
     if s_lookup in mapa_modulo:
         val_contextual = mapa_modulo[s_lookup]
         if val_contextual in status_permitidos:
             return {"ok": True, "valor": val_contextual, "motivo": "Status normalizado por regra de módulo", "original": original}
 
-    # PASSO 3: Fallback Global Seguro
     if s_lookup in mapa_geral:
         val_global = mapa_geral[s_lookup]
         if val_global in status_permitidos:
             msg = f"Status normalizado para o padrão do módulo" if s_lookup != val_global else None
             return {"ok": True, "valor": val_global, "motivo": msg, "original": original}
 
-    # PASSO 4: Comportamento Legado (Tolerâncias gerais)
     status_encontrado = mapa_geral.get(s_lookup, s_lookup)
     if status_encontrado in mapa_geral.values():
         return {"ok": True, "valor": status_encontrado, "motivo": "Status aceito por normalização contextual (Tolerância global)", "original": original}
     if len(s_lookup) > 1:
         return {"ok": True, "valor": status_encontrado, "motivo": "Status mantido por tolerância (Fora do padrão conhecido)", "original": original}
-        
+
     msg_nome_modulo = mod.capitalize() if mod != "OBRAS" else "Obras"
     return {"ok": False, "valor": "INVÁLIDO", "motivo": f"Status vazio ou ilegível não reconhecido no módulo {msg_nome_modulo}", "original": original}
+
 
 LIMITE_ORDENACAO_LINHAS = 15000
 LIMITE_MODO_RAPIDO_LINHAS = 3000
@@ -403,11 +551,15 @@ UF_VALIDAS = {
 }
 
 MAPA_ESTADOS_POR_NOME = {
-    "acre": "AC", "alagoas": "AL", "amapa": "AP", "amazonas": "AM", "bahia": "BA", "ceara": "CE", "distrito federal": "DF",
-    "espirito santo": "ES", "goias": "GO", "maranhao": "MA", "mato grosso": "MT", "mato grosso do sul": "MS", "minas gerais": "MG",
-    "para": "PA", "paraiba": "PB", "parana": "PR", "pernambuco": "PE", "piaui": "PI", "rio de janeiro": "RJ", "rio grande do norte": "RN",
-    "rio grande do sul": "RS", "rondonia": "RO", "roraima": "RR", "santa catarina": "SC", "sao paulo": "SP", "sergipe": "SE", "tocantins": "TO"
+    "acre": "AC", "alagoas": "AL", "amapa": "AP", "amazonas": "AM", "bahia": "BA",
+    "ceara": "CE", "distrito federal": "DF", "espirito santo": "ES", "goias": "GO",
+    "maranhao": "MA", "mato grosso": "MT", "mato grosso do sul": "MS", "minas gerais": "MG",
+    "para": "PA", "paraiba": "PB", "parana": "PR", "pernambuco": "PE", "piaui": "PI",
+    "rio de janeiro": "RJ", "rio grande do norte": "RN", "rio grande do sul": "RS",
+    "rondonia": "RO", "roraima": "RR", "santa catarina": "SC", "sao paulo": "SP",
+    "sergipe": "SE", "tocantins": "TO"
 }
+
 
 def construir_mapa_aliases(base):
     mapa = {}
@@ -417,7 +569,9 @@ def construir_mapa_aliases(base):
             mapa[normalizar_nome_coluna(alias)] = canonico
     return mapa
 
+
 MAPA_ALIAS_CANONICO = construir_mapa_aliases(BASE_COLUNAS_VALIDACAO)
+
 
 def resolver_coluna_canonica(nome_coluna, modulo_ativo="DESCONHECIDO"):
     norm = normalizar_nome_coluna(nome_coluna)
@@ -430,8 +584,10 @@ def resolver_coluna_canonica(nome_coluna, modulo_ativo="DESCONHECIDO"):
             return None
     return canonico
 
+
 def obter_schema_coluna(canonico):
     return BASE_COLUNAS_VALIDACAO.get(canonico, {})
+
 
 def validar_limite_por_schema(schema, numero):
     regras = schema.get("regras", {})
@@ -441,6 +597,7 @@ def validar_limite_por_schema(schema, numero):
     if maximo is not None and numero > maximo: return False
     return True
 
+
 def cpf_valido(digitos):
     if len(digitos) != 11 or digitos == digitos[0] * 11: return False
     soma = sum(int(digitos[i]) * (10 - i) for i in range(9))
@@ -448,6 +605,7 @@ def cpf_valido(digitos):
     soma = sum(int(digitos[i]) * (11 - i) for i in range(10))
     d2 = ((soma * 10) % 11) % 10
     return digitos[-2:] == f"{d1}{d2}"
+
 
 def cnpj_valido(digitos):
     if len(digitos) != 14 or digitos == digitos[0] * 14: return False
@@ -518,9 +676,11 @@ def detectar_estrutura(ws):
                 if isinstance(val, (int, float, Decimal)) or parse_decimal_br(val) is not None: nums += 1
             if tot > 0 and (nums / tot) >= 0.7: numeric_cols.add(c)
 
-    info = {"header_row": header_row, "data_start": data_start, "data_end": data_end, "col_start": col_start, "col_end": col_end, "numeric_cols": numeric_cols}
+    info = {"header_row": header_row, "data_start": data_start, "data_end": data_end,
+            "col_start": col_start, "col_end": col_end, "numeric_cols": numeric_cols}
     ws._cache_dimensoes_reais = info
     return info
+
 
 def auto_ajustar_largura(ws):
     info = detectar_estrutura(ws)
@@ -531,7 +691,6 @@ def auto_ajustar_largura(ws):
         header_val = str(ws.cell(row=hr, column=col).value or "").strip()
         canonico = resolver_coluna_canonica(header_val)
         tipo = obter_schema_coluna(canonico).get("tipo") if canonico else None
-        
         max_len = len(header_val)
 
         for row in range(ds, min(de, ds + LIMITE_AMOSTRA_LARGURA) + 1):
@@ -539,17 +698,19 @@ def auto_ajustar_largura(ws):
             maior_linha = max((len(l.strip()) for l in val.split("\n")), default=0)
             if maior_linha > max_len: max_len = maior_linha
 
-        largura_base = max_len + 8
-        largura_ideal = max(16, min(largura_base, 52))
+        # Padding premium: mais espaço interno para respirar
+        largura_base = max_len + 10
+        largura_ideal = max(18, min(largura_base, 56))
 
-        if tipo == "hora": largura_ideal = max(largura_ideal, 16)
-        elif tipo == "data": largura_ideal = max(largura_ideal, 18)
-        elif tipo in ["moeda", "decimal"]: largura_ideal = max(largura_ideal, 20)
-        elif tipo == "texto_nome": largura_ideal = max(largura_ideal, 26)
-        elif tipo in ["cpf", "cnpj", "telefone_br"]: largura_ideal = max(largura_ideal, 20)
-        elif tipo == "email": largura_ideal = max(largura_ideal, 28)
+        if tipo == "hora":            largura_ideal = max(largura_ideal, 18)
+        elif tipo == "data":          largura_ideal = max(largura_ideal, 20)
+        elif tipo in ["moeda", "decimal"]: largura_ideal = max(largura_ideal, 22)
+        elif tipo == "texto_nome":    largura_ideal = max(largura_ideal, 28)
+        elif tipo in ["cpf", "cnpj", "telefone_br"]: largura_ideal = max(largura_ideal, 22)
+        elif tipo == "email":         largura_ideal = max(largura_ideal, 32)
 
         ws.column_dimensions[get_column_letter(col)].width = largura_ideal
+
 
 def filtrar_colunas_util(ws):
     info = detectar_estrutura(ws)
@@ -564,7 +725,8 @@ def filtrar_colunas_util(ws):
         if nome_norm in exatas_lixo or any(termo in nome_norm.split('_') for termo in termos_lixo):
             ws.delete_cols(col)
             colunas_removidas = True
-    if colunas_removidas and hasattr(ws, "_cache_dimensoes_reais"): delattr(ws, "_cache_dimensoes_reais")
+    if colunas_removidas and hasattr(ws, "_cache_dimensoes_reais"):
+        delattr(ws, "_cache_dimensoes_reais")
 
 
 def obter_ou_criar_aba_inconsistencias(wb):
@@ -581,6 +743,7 @@ def obter_ou_criar_aba_inconsistencias(wb):
     if not hasattr(ws, "_limite_atingido"): ws._limite_atingido = False
     if not hasattr(ws, "_next_row"): ws._next_row = ws.max_row + 1
     return ws
+
 
 def registrar_inconsistencia(ws_inc, nome_aba, linha, coluna_nome, valor_original, valor_resultado, status_final, motivo):
     total = getattr(ws_inc, "_total_registros", 0)
@@ -612,7 +775,7 @@ def validar_e_transformar_valor(canonico, valor, nome_aba=None):
     regras = schema.get("regras", {})
 
     if not tipo: return {"ok": True, "valor": valor, "motivo": None, "original": original}
-    
+
     if valor_vazio(valor):
         if schema.get("required"): return {"ok": False, "valor": "INVÁLIDO", "motivo": "Campo obrigatório vazio", "original": original}
         return {"ok": True, "valor": None, "motivo": None, "original": original}
@@ -620,7 +783,8 @@ def validar_e_transformar_valor(canonico, valor, nome_aba=None):
     if tipo == "texto":
         s = normalizar_texto(valor)
         if not s: return {"ok": False, "valor": "INVÁLIDO", "motivo": "Texto vazio", "original": original}
-        if len(s) < regras.get("min_len", 1) or len(s) > regras.get("max_len", 255): return {"ok": False, "valor": "INVÁLIDO", "motivo": "Texto fora do tamanho permitido", "original": original}
+        if len(s) < regras.get("min_len", 1) or len(s) > regras.get("max_len", 255):
+            return {"ok": False, "valor": "INVÁLIDO", "motivo": "Texto fora do tamanho permitido", "original": original}
         return {"ok": True, "valor": s, "motivo": "Espaços corrigidos" if s != original else None, "original": original}
 
     elif tipo == "texto_nome":
@@ -695,9 +859,11 @@ def validar_e_transformar_valor(canonico, valor, nome_aba=None):
     elif tipo in ["data", "data_hora"]:
         dt = _converter_texto_para_data(valor)
         if dt is None: return {"ok": False, "valor": "INVÁLIDO", "motivo": "Data inválida ou formato desconhecido", "original": original}
-        if regras.get("nao_permitir_futuro", False) and dt.date() > datetime.now().date(): return {"ok": False, "valor": "INVÁLIDO", "motivo": "Data futura não permitida", "original": original}
+        if regras.get("nao_permitir_futuro", False) and dt.date() > datetime.now().date():
+            return {"ok": False, "valor": "INVÁLIDO", "motivo": "Data futura não permitida", "original": original}
         ano_min = regras.get("ano_minimo")
-        if ano_min is not None and dt.year < ano_min: return {"ok": False, "valor": "INVÁLIDO", "motivo": "Data muito antiga", "original": original}
+        if ano_min is not None and dt.year < ano_min:
+            return {"ok": False, "valor": "INVÁLIDO", "motivo": "Data muito antiga", "original": original}
         return {"ok": True, "valor": dt, "motivo": "Data padronizada" if isinstance(original, str) else None, "original": original}
 
     elif tipo == "lista":
@@ -715,6 +881,7 @@ def validador_veiculos(linha_ctx):
             ctx["motivo"] = "Motorista convertido para termo padrão inteligente"
             ctx["corrigido"] = True
 
+
 def validador_materiais(linha_ctx):
     if "material" in linha_ctx and "unidade" in linha_ctx:
         mat = linha_ctx["material"]
@@ -724,6 +891,7 @@ def validador_materiais(linha_ctx):
             uni["ok"] = True
             uni["motivo"] = "Unidade de cimento forçada para KG"
             uni["corrigido"] = True
+
 
 def validador_equipe(linha_ctx):
     if "falta" in linha_ctx:
@@ -755,6 +923,7 @@ def validador_equipe(linha_ctx):
                 linha_ctx["pontual"]["corrigido"] = True
                 linha_ctx["pontual"]["motivo"] = "Pontualidade recalculada com base em Hora Chegada e Hora Prevista"
 
+
 VALIDADORES_MODULO = {
     "VEICULOS": validador_veiculos,
     "MATERIAIS": validador_materiais,
@@ -762,6 +931,7 @@ VALIDADORES_MODULO = {
     "EQUIPE": validador_equipe,
     "ENTREGAS": lambda ctx: None
 }
+
 
 def validar_sheet(ws, ws_inc):
     info = detectar_estrutura(ws)
@@ -792,9 +962,6 @@ def validar_sheet(ws, ws_inc):
         for col, rel_idx in zip(colunas_validadas, colunas_relativas):
             cell, meta = row_cells[rel_idx], colunas_map[col]
             valor_antes = cell.value
-            
-            # Deixamos o motor "hora" ser executado e validado no bloco especial abaixo, 
-            # não precisando passar pelo validador_e_transformar_valor original.
             if obter_schema_coluna(meta["canonico"]).get("tipo") != "hora":
                 res = validar_e_transformar_valor(meta["canonico"], valor_antes, nome_aba=ws.title)
                 linha_ctx[meta["canonico"]] = {
@@ -807,7 +974,6 @@ def validar_sheet(ws, ws_inc):
         if modulo_ativo in VALIDADORES_MODULO:
             VALIDADORES_MODULO[modulo_ativo](linha_ctx)
 
-        # Loop principal das células validadas
         for col, rel_idx in zip(colunas_validadas, colunas_relativas):
             cell, meta = row_cells[rel_idx], colunas_map[col]
             v_orig = cell.value
@@ -815,10 +981,8 @@ def validar_sheet(ws, ws_inc):
             schema = obter_schema_coluna(canonico)
             tipo = schema.get("tipo")
 
-            # 👇 INJEÇÃO EXATA NO LOOP PRINCIPAL CONFORME SOLICITADO
             if tipo == "hora":
                 hora = processar_hora(v_orig)
-
                 if hora:
                     cell.value = hora
                     cell.number_format = "hh:mm"
@@ -828,23 +992,12 @@ def validar_sheet(ws, ws_inc):
                             registrar_inconsistencia(ws_inc, ws.title, idx_linha, meta["nome_original"], v_orig, hora, "CORRIGIDO", "Normalização de Hora Automática")
                 else:
                     if not valor_vazio(v_orig) or schema.get("required"):
-                        cell.value = None  # evita 1899
+                        cell.value = None
                         total_invalidos += 1
-                        
-                        registrar_inconsistencia(
-                            ws_inc,
-                            ws.title,
-                            idx_linha,
-                            meta["nome_original"],
-                            v_orig,
-                            None,
-                            "INVÁLIDO",
-                            "Hora inválida"
-                        )
+                        registrar_inconsistencia(ws_inc, ws.title, idx_linha, meta["nome_original"], v_orig, None, "INVÁLIDO", "Hora inválida")
                         cell.comment = Comment("Hora inválida", "Data Studio V8")
                 continue
 
-            # Processamento Padrão que vem do linha_ctx
             if canonico in linha_ctx:
                 dados = linha_ctx[canonico]
                 if valor_vazio(v_orig) and not meta["required"]: continue
@@ -863,12 +1016,13 @@ def validar_sheet(ws, ws_inc):
 
     return {"total_colunas_mapeadas": len(colunas_map), "total_invalidos": total_invalidos, "total_corrigidos": total_corrigidos}
 
+
 def ordenar_por_data_na_planilha(ws, hr, ds, de, cs, ce):
     if not hr or ds > de or (de - ds + 1) > LIMITE_ORDENACAO_LINHAS: return
-    
+
     modulo_ativo = detectar_modulo_por_aba(ws.title)
     col_data = None
-    
+
     for col in range(cs, ce + 1):
         canonico = resolver_coluna_canonica(ws.cell(hr, col).value, modulo_ativo)
         if canonico and obter_schema_coluna(canonico).get("tipo") in ["data", "data_hora"]:
@@ -890,46 +1044,83 @@ def ordenar_por_data_na_planilha(ws, hr, ds, de, cs, ce):
             ws.cell(row=i, column=j, value=valor if valor is not None else None)
 
 
+# ─────────────────────────────────────────────────────────────────────────────
+#  SISTEMA DE CORES DE STATUS — REDESENHADO
+#
+#  Filosofia: status não é só cor. É comunicação.
+#  Cada cor carrega significado universal:
+#    Verde  → sucesso, ativo, positivo
+#    Azul   → processo, neutro-informativo
+#    Âmbar  → atenção, alerta moderado
+#    Vermelho → problema, falha, bloqueio
+#    Roxo   → especial, programado
+#    Cinza  → inativo, neutro
+#
+#  Paleta ajustada para elegância: fundos pastel suaves + texto bem escuro.
+#  Nada saturado. Nada gritante. Identidade consistente.
+# ─────────────────────────────────────────────────────────────────────────────
+
 _PALETA_STATUS = {
-    "DISPONIVEL":    {"bg": "D1FAE5", "fg": "065F46"},
-    "EM_USO":        {"bg": "DBEAFE", "fg": "1E40AF"},
-    "MANUTENCAO":    {"bg": "FEF3C7", "fg": "92400E"},
-    "INATIVO":       {"bg": "F3F4F6", "fg": "6B7280"},
-    "EM_ANDAMENTO":  {"bg": "DBEAFE", "fg": "1E40AF"},
-    "PARALISADA":    {"bg": "FEF3C7", "fg": "92400E"},
-    "CONCLUIDA":     {"bg": "D1FAE5", "fg": "065F46"},
-    "CANCELADA":     {"bg": "FEE2E2", "fg": "991B1B"},
-    "ATIVO":         {"bg": "D1FAE5", "fg": "065F46"},
-    "FERIAS":        {"bg": "EDE9FE", "fg": "5B21B6"},
-    "AFASTADO":      {"bg": "FEF3C7", "fg": "92400E"},
-    "PRESENTE":      {"bg": "D1FAE5", "fg": "065F46"},
-    "FALTA":         {"bg": "FEE2E2", "fg": "991B1B"},
-    "EM_ESTOQUE":    {"bg": "D1FAE5", "fg": "065F46"},
-    "BAIXO_ESTOQUE": {"bg": "FEF3C7", "fg": "92400E"},
-    "ESGOTADO":      {"bg": "FEE2E2", "fg": "991B1B"},
-    "RESERVADO":     {"bg": "DBEAFE", "fg": "1E40AF"},
-    "PENDENTE":      {"bg": "FEF3C7", "fg": "92400E"},
-    "EM_ROTA":       {"bg": "DBEAFE", "fg": "1E40AF"},
-    "ENTREGUE":      {"bg": "D1FAE5", "fg": "065F46"},
-    "ATRASADA":      {"bg": "FEE2E2", "fg": "991B1B"},
-    "RECEBIDO":      {"bg": "D1FAE5", "fg": "065F46"},
-    "CONFERIDO":     {"bg": "D1FAE5", "fg": "065F46"},
+    # ── VERDE: positivo / ativo / ok ─────────────────────────────────────
+    "DISPONIVEL":    {"bg": "DCFCE7", "fg": "14532D"},
+    "CONCLUIDA":     {"bg": "DCFCE7", "fg": "14532D"},
+    "ATIVO":         {"bg": "DCFCE7", "fg": "14532D"},
+    "PRESENTE":      {"bg": "DCFCE7", "fg": "14532D"},
+    "EM_ESTOQUE":    {"bg": "DCFCE7", "fg": "14532D"},
+    "ENTREGUE":      {"bg": "DCFCE7", "fg": "14532D"},
+    "RECEBIDO":      {"bg": "DCFCE7", "fg": "14532D"},
+    "CONFERIDO":     {"bg": "DCFCE7", "fg": "14532D"},
+
+    # ── AZUL ROYAL: processo / em andamento ─────────────────────────────
+    "EM_ANDAMENTO":  {"bg": "DBEAFE", "fg": "1E3A8A"},
+    "EM_USO":        {"bg": "DBEAFE", "fg": "1E3A8A"},
+    "EM_ROTA":       {"bg": "DBEAFE", "fg": "1E3A8A"},
+    "RESERVADO":     {"bg": "DBEAFE", "fg": "1E3A8A"},
+
+    # ── ÂMBAR: atenção / pendente ────────────────────────────────────────
+    "PARALISADA":    {"bg": "FEF3C7", "fg": "78350F"},
+    "MANUTENCAO":    {"bg": "FEF3C7", "fg": "78350F"},
+    "AFASTADO":      {"bg": "FEF3C7", "fg": "78350F"},
+    "PENDENTE":      {"bg": "FEF3C7", "fg": "78350F"},
+    "BAIXO_ESTOQUE": {"bg": "FEF3C7", "fg": "78350F"},
+
+    # ── VERMELHO: problema / falha / crítico ─────────────────────────────
+    "CANCELADA":     {"bg": "FEE2E2", "fg": "7F1D1D"},
+    "FALTA":         {"bg": "FEE2E2", "fg": "7F1D1D"},
+    "ESGOTADO":      {"bg": "FEE2E2", "fg": "7F1D1D"},
+    "ATRASADA":      {"bg": "FEE2E2", "fg": "7F1D1D"},
+
+    # ── ROXO: especial / programado ──────────────────────────────────────
+    "FERIAS":        {"bg": "EDE9FE", "fg": "4C1D95"},
+
+    # ── CINZA: inativo / neutro ──────────────────────────────────────────
+    "INATIVO":       {"bg": "F3F4F6", "fg": "374151"},
 }
 
 _CACHE_FILLS_STATUS = {
-    k: (PatternFill("solid", fgColor=v["bg"]), Font(name="Aptos", bold=True, size=10, color=v["fg"]))
+    k: (
+        PatternFill("solid", fgColor=v["bg"]),
+        Font(name="Calibri", bold=True, size=10, color=v["fg"])
+    )
     for k, v in _PALETA_STATUS.items()
 }
 
+# ── ESTILO DE ERRO ────────────────────────────────────────────────────────────
+# Vermelho intenso com fundo róseo muito suave. Legível mas alarmante.
 _FILL_ERRO  = PatternFill("solid", fgColor="FEE2E2")
-_FONT_ERRO  = Font(name="Aptos", bold=True, size=10, color="B91C1C", italic=True)
+_FONT_ERRO  = Font(name="Calibri", bold=True, size=10, color="991B1B", italic=True)
 _ALIGN_ERRO = Alignment(horizontal="center", vertical="center")
-_FILL_MOEDA_PAR   = PatternFill("solid", fgColor="F0F9FF")
+
+# ── ESTILOS DE MOEDA ─────────────────────────────────────────────────────────
+# Fundos muito sutis para diferenciar sem poluir
+_FILL_MOEDA_PAR   = PatternFill("solid", fgColor="F8FFFE")
 _FILL_MOEDA_IMPAR = PatternFill("solid", fgColor="FFFFFF")
+
 
 def _obter_cor_status(val_status_str):
     chave = str(val_status_str).strip().upper().replace(" ", "_") if val_status_str else ""
     return _CACHE_FILLS_STATUS.get(chave, (None, None))
+
 
 def _aplicar_coloracao_celula(cell, valor, row_fill, normal_font, canonico, status_col_idx, tipo, is_linha_par, modo_rapido):
     if valor == "INVÁLIDO":
@@ -948,233 +1139,521 @@ def _aplicar_coloracao_celula(cell, valor, row_fill, normal_font, canonico, stat
         cell.fill = _FILL_MOEDA_PAR if is_linha_par else _FILL_MOEDA_IMPAR
         cell.font = normal_font
         return cell.fill
-    
+
     cell.fill = row_fill
     cell.font = normal_font
     return row_fill
 
 
+# ─────────────────────────────────────────────────────────────────────────────
+#  formatar_sheet — REDESENHADO COMPLETAMENTE
+#
+#  Decisões de design:
+#
+#  1. CABEÇALHO
+#     • Fundo cor âncora do tema (quase-preto ou deep color)
+#     • Texto branco / off-white com peso bold size 11
+#     • Altura: 42px — presença nobre sem ser exagerado
+#     • Alinhamento central / wrapping desabilitado (texto clean)
+#     • Borda inferior "medium" na cor tema = linha de separação premium
+#
+#  2. DADOS
+#     • Zebra sutil: linha par = tom muito levemente colorido, ímpar = branco
+#     • Linha height padrão: 24px (mais confortável que o padrão Excel)
+#     • Indent 1 em texto, centralizado em códigos/datas/status
+#     • Fonte Calibri 10 — universal, clean, legível
+#     • Nenhuma borda vertical em dados (minimalismo)
+#     • Borda horizontal muito sutil nas linhas
+#
+#  3. BORDAS
+#     • Cabeçalho: all sides thin na cor tema
+#     • Dados: só borda inferior thin levíssima (cor border do tema)
+#     • Última linha: borda inferior medium na cor âncora do tema
+#     • Zero borda lateral em dados = visual mais clean, menos grade
+#
+#  4. COLUNAS DE STATUS
+#     • Tag colorida centralizada (sem borda lateral = pill-like)
+#
+#  5. NÚMEROS / MOEDA
+#     • Alinhamento à direita
+#     • Formato #,##0.00 (padrão internacional pt-BR)
+#
+# ─────────────────────────────────────────────────────────────────────────────
+
 def formatar_sheet(ws, tema_nome, ordenar=True):
     t = TEMAS.get(tema_nome, TEMAS["🔵 Azul Executivo"])
     info = detectar_estrutura(ws)
-    hr, ds, de, cs, ce, nc = info["header_row"], info["data_start"], info["data_end"], info["col_start"], info["col_end"], info["numeric_cols"]
+    hr = info["header_row"]
+    ds = info["data_start"]
+    de = info["data_end"]
+    cs = info["col_start"]
+    ce = info["col_end"]
+    nc = info["numeric_cols"]
 
-    total_linhas, total_colunas = max(0, de - ds + 1), max(0, ce - cs + 1)
-    modo_rapido = total_linhas >= LIMITE_MODO_RAPIDO_LINHAS or (total_linhas * total_colunas) >= LIMITE_MODO_RAPIDO_CELULAS
+    total_linhas   = max(0, de - ds + 1)
+    total_colunas  = max(0, ce - cs + 1)
+    modo_rapido    = (total_linhas >= LIMITE_MODO_RAPIDO_LINHAS or
+                      total_linhas * total_colunas >= LIMITE_MODO_RAPIDO_CELULAS)
 
-    if ordenar and not modo_rapido: ordenar_por_data_na_planilha(ws, hr, ds, de, cs, ce)
+    if ordenar and not modo_rapido:
+        ordenar_por_data_na_planilha(ws, hr, ds, de, cs, ce)
 
-    ws.sheet_view.showGridLines = False
-    ws.sheet_view.zoomScale = 100
+    # ── Configurações gerais da aba ──────────────────────────────────────────
+    ws.sheet_view.showGridLines  = False   # sem grade padrão do Excel
+    ws.sheet_view.zoomScale      = 100
     ws.sheet_properties.tabColor = t["tab_color"]
 
-    header_fill = _fill(t["header_bg"])
-    alt_fill    = _fill(t["accent_light"])
-    white_fill  = _fill("FFFFFF")
-    thin_b      = _border(t["border"])
+    # ── Fills ────────────────────────────────────────────────────────────────
+    header_fill  = _fill(t["header_bg"])
+    zebra_fill   = _fill(t["zebra"])
+    white_fill   = _fill(t["row_white"])
+    panel_fill   = _fill(t["panel_bg"])
 
-    header_font = _font(bold=True, size=11, color=t["header_fg"])
-    normal_font = _font(size=10, color="202124")
+    # ── Bordas ───────────────────────────────────────────────────────────────
+    # Dados: só borda inferior — clean, respira melhor
+    borda_dados_linha = Border(
+        bottom=Side(border_style="thin", color=t["border"]),
+        left=Side(border_style="thin", color=t["border"]),
+        right=Side(border_style="thin", color=t["border"]),
+    )
+    # Cabeçalho: borda completa fina + borda inferior forte
+    borda_header = Border(
+        left  =Side(border_style="thin",   color=t["header_bg"]),
+        right =Side(border_style="thin",   color=t["header_bg"]),
+        top   =Side(border_style="thin",   color=t["header_bg"]),
+        bottom=Side(border_style="medium", color=t["header_bg"]),
+    )
+    # Última linha da tabela: borda inferior forte (fecho visual)
+    borda_ultima_linha = Border(
+        left  =Side(border_style="thin",   color=t["border"]),
+        right =Side(border_style="thin",   color=t["border"]),
+        top   =Side(border_style="thin",   color=t["border"]),
+        bottom=Side(border_style="medium", color=t["border_strong"]),
+    )
+
+    # ── Fontes ───────────────────────────────────────────────────────────────
+    # Cabeçalho: Calibri Bold 11, off-white — presença sem grito
+    header_font = Font(name="Calibri", bold=True, size=11, color=t["header_fg"])
+    # Dados normais: Calibri 10, quase-preto
+    normal_font = Font(name="Calibri", size=10, color="1C2B3A")
+    # Dados numéricos: leve itálico remove para manter profissionalismo
+    num_font    = Font(name="Calibri", size=10, color="1C2B3A")
 
     modulo_ativo = detectar_modulo_por_aba(ws.title)
-    
     colunas_meta = {}
     status_col_idx = None
-    
+
+    # ── CABEÇALHO ─────────────────────────────────────────────────────────────
     if hr:
-        ws.row_dimensions[hr].height = 36
+        # Altura generosa — cria presença visual forte
+        ws.row_dimensions[hr].height = 42
+
         for col in range(cs, ce + 1):
             cell = ws.cell(hr, col)
-            if isinstance(cell.value, str): cell.value = cell.value.strip().title()
-            
+
+            # Normaliza título: Title Case limpo
+            if isinstance(cell.value, str):
+                cell.value = cell.value.strip().title()
+
             nome_coluna = str(cell.value or "")
-            canonico = resolver_coluna_canonica(nome_coluna, modulo_ativo)
-            schema = obter_schema_coluna(canonico) if canonico else {}
-            tipo = schema.get("tipo")
-            
-            if canonico == "status": status_col_idx = col
+            canonico    = resolver_coluna_canonica(nome_coluna, modulo_ativo)
+            schema      = obter_schema_coluna(canonico) if canonico else {}
+            tipo        = schema.get("tipo")
+
+            if canonico == "status":
+                status_col_idx = col
 
             colunas_meta[col] = {
-                "canonico": canonico,
-                "tipo": tipo,
-                "centralizar": tipo in ["hora", "data", "data_hora", "uf_br", "placa_veiculo", "lista", "cep_br", "telefone_br"] or canonico in ["unidade", "idade"]
+                "canonico":   canonico,
+                "tipo":       tipo,
+                "centralizar": tipo in [
+                    "hora", "data", "data_hora", "uf_br",
+                    "placa_veiculo", "lista", "cep_br", "telefone_br"
+                ] or canonico in ["unidade", "idade"]
             }
 
             cell.fill      = header_fill
             cell.font      = header_font
-            cell.border    = thin_b
-            cell.alignment = _align("center", "center", wrap=True)
+            cell.border    = borda_header
+            # Cabeçalho: centralizado horizontalmente, centrado verticalmente
+            cell.alignment = Alignment(horizontal="center", vertical="center", wrap_text=False)
 
     limite_amostra = min(de, ds + LIMITE_AMOSTRA_LARGURA - 1) if ds <= de else de
 
+    # ── LINHAS DE DADOS ───────────────────────────────────────────────────────
     for row in range(ds, de + 1):
-        is_linha_par = (row - ds) % 2 == 0
-        row_fill = alt_fill if is_linha_par else white_fill
-        altura_calculada = 22 if modo_rapido else 32
+        is_ultima_linha = (row == de)
+        is_linha_par    = (row - ds) % 2 == 0
+        row_fill        = zebra_fill if is_linha_par else white_fill
+        # Altura confortável: 26px padrão, aumenta se conteúdo exige
+        altura_calculada = 22 if modo_rapido else 26
 
         for col in range(cs, ce + 1):
             cell  = ws.cell(row, col)
             valor = cell.value
-            
-            meta = colunas_meta.get(col, {})
-            tipo = meta.get("tipo")
-            canonico = meta.get("canonico")
 
-            if not modo_rapido and isinstance(valor, (datetime, date)) and not isinstance(valor, time) and tipo != "hora":
+            meta      = colunas_meta.get(col, {})
+            tipo      = meta.get("tipo")
+            canonico  = meta.get("canonico")
+
+            # ── Correção datas antigas do Excel (bug 1899) ────────────────
+            if (not modo_rapido
+                    and isinstance(valor, (datetime, date))
+                    and not isinstance(valor, time)
+                    and tipo != "hora"):
                 if valor.year <= 1905:
-                    valor_dt = datetime.combine(valor, datetime.min.time()) if isinstance(valor, date) and not isinstance(valor, datetime) else valor
+                    valor_dt = (datetime.combine(valor, datetime.min.time())
+                                if isinstance(valor, date) and not isinstance(valor, datetime)
+                                else valor)
                     delta = valor_dt - datetime(1899, 12, 30)
-                    num = delta.days + (delta.seconds / 86400.0)
-                    valor = cell.value = int(num) if num.is_integer() else num
+                    num   = delta.days + (delta.seconds / 86400.0)
+                    valor = cell.value = int(num) if num == int(num) else num
 
+            # ── Formatação por tipo ───────────────────────────────────────
             if tipo in ["data", "data_hora"]:
                 d_conv = valor if isinstance(valor, datetime) else _converter_texto_para_data(valor)
                 if d_conv is not None and d_conv.year > 1905:
-                    cell.value = d_conv
+                    cell.value        = d_conv
                     cell.number_format = "DD/MM/YYYY"
-                    cell.alignment = Alignment(horizontal="center", vertical="center")
+                    cell.alignment    = Alignment(horizontal="center", vertical="center")
                 else:
                     cell.alignment = _align_indent("left", "center", wrap=not modo_rapido, indent=1)
-                    
+
             elif tipo == "hora" or isinstance(valor, time):
                 cell.alignment = Alignment(horizontal="center", vertical="center")
                 if isinstance(valor, time):
                     cell.number_format = "hh:mm"
-                    
+
             elif tipo in ["moeda", "decimal"] and isinstance(valor, (int, float, Decimal)):
-                cell.alignment = Alignment(horizontal="right", vertical="center")
-                cell.number_format = "#,##0.00"
-                
+                cell.alignment    = Alignment(horizontal="right", vertical="center", indent=1)
+                cell.number_format = "R$ #,##0.00"  # formato BR explícito
+
             elif col in nc and isinstance(valor, (int, float, Decimal)):
-                cell.alignment = Alignment(horizontal="right", vertical="center")
-                cell.number_format = "#,##0.00" if isinstance(valor, float) and valor != int(valor) else "#,##0"
-                
+                cell.alignment    = Alignment(horizontal="right", vertical="center", indent=1)
+                cell.number_format = ("#,##0.00" if isinstance(valor, float) and valor != int(valor)
+                                       else "#,##0")
+
             else:
                 if meta.get("centralizar"):
-                    cell.alignment = Alignment(horizontal="center", vertical="center", wrap_text=not modo_rapido)
+                    cell.alignment = Alignment(horizontal="center", vertical="center",
+                                               wrap_text=not modo_rapido)
                 else:
-                    cell.alignment = _align_indent("left", "center", wrap=not modo_rapido, indent=1)
+                    cell.alignment = _align_indent("left", "center",
+                                                   wrap=not modo_rapido, indent=1)
 
-            cell.border = thin_b
+            # ── Borda ─────────────────────────────────────────────────────
+            cell.border = borda_ultima_linha if is_ultima_linha else borda_dados_linha
 
+            # ── Cor / Fill ────────────────────────────────────────────────
             _aplicar_coloracao_celula(
                 cell, valor, row_fill, normal_font,
                 canonico, status_col_idx, tipo, is_linha_par, modo_rapido
             )
 
+            # ── Altura dinâmica por conteúdo ──────────────────────────────
             if not modo_rapido and row <= limite_amostra:
-                LARGURA_BASE_TELA = 42
+                LARGURA_BASE_TELA = 44
                 tamanho_texto = len(str(cell.value)) if cell.value is not None else 0
                 if tamanho_texto > LARGURA_BASE_TELA:
-                    linhas_totais = max((tamanho_texto // LARGURA_BASE_TELA) + 1, str(cell.value).count('\n') + 1)
-                    altura_com_respiro = (linhas_totais * 16) + 14
-                    if altura_com_respiro > altura_calculada: altura_calculada = altura_com_respiro
+                    linhas_totais = max(
+                        (tamanho_texto // LARGURA_BASE_TELA) + 1,
+                        str(cell.value).count('\n') + 1
+                    )
+                    altura_com_respiro = (linhas_totais * 16) + 16
+                    if altura_com_respiro > altura_calculada:
+                        altura_calculada = altura_com_respiro
 
         ws.row_dimensions[row].height = altura_calculada
 
-    if not modo_rapido and de >= ds:
-        borda_base_cor = t["border"]
-        lado_fino  = Side(border_style="thin",   color=borda_base_cor)
-        lado_forte = Side(border_style="medium", color=t["header_bg"])
-        for col in range(cs, ce + 1):
-            cell = ws.cell(de, col)
-            cell.border = Border(
-                left   = lado_fino,
-                right  = lado_fino,
-                top    = lado_fino,
-                bottom = lado_forte
-            )
-
+    # ── Freeze + Filtro ──────────────────────────────────────────────────────
     if hr:
         ws.freeze_panes = ws.cell(hr + 1, cs)
         if ds <= de and cs <= ce:
-            ws.auto_filter.ref = f"{get_column_letter(cs)}{hr}:{get_column_letter(ce)}{de}"
+            ws.auto_filter.ref = (
+                f"{get_column_letter(cs)}{hr}:{get_column_letter(ce)}{de}"
+            )
 
+
+# ─────────────────────────────────────────────────────────────────────────────
+#  criar_sumario — DASHBOARD PREMIUM COMPLETO
+#
+#  Filosofia: o Dashboard não é uma lista. É um painel executivo.
+#  Layout de cards com métricas, separação visual clara, identidade forte.
+#
+#  Estrutura:
+#    • Linha 1-2: área em branco (respiro superior)
+#    • Linha 3: título principal + subtítulo
+#    • Linha 4: separador visual
+#    • Linha 5-7: cards de métricas (Total Abas / Total Linhas / Data)
+#    • Linha 9: cabeçalho da tabela de abas
+#    • Linha 10+: listagem de abas formatada
+# ─────────────────────────────────────────────────────────────────────────────
 
 def criar_sumario(wb, tema_nome):
     t = TEMAS.get(tema_nome, TEMAS["🔵 Azul Executivo"])
-    if "📊 Dashboard" in wb.sheetnames: del wb["📊 Dashboard"]
+
+    if "📊 Dashboard" in wb.sheetnames:
+        del wb["📊 Dashboard"]
 
     ws = wb.create_sheet("📊 Dashboard", 0)
-    ws.sheet_view.showGridLines = False
+    ws.sheet_view.showGridLines  = False
     ws.sheet_properties.tabColor = t["tab_color"]
 
-    ws["B2"] = "DASHBOARD DO ARQUIVO"
-    ws["B2"].font = _font(bold=True, size=18, color=t["title_fg"])
+    # ── Larguras das colunas ─────────────────────────────────────────────────
+    ws.column_dimensions["A"].width = 3    # margem esquerda
+    ws.column_dimensions["B"].width = 6    # índice
+    ws.column_dimensions["C"].width = 36   # nome da aba
+    ws.column_dimensions["D"].width = 18   # linhas
+    ws.column_dimensions["E"].width = 18   # colunas
+    ws.column_dimensions["F"].width = 3    # margem direita
 
-    cabecalhos = ["Índice", "Nome da Planilha", "Linhas Processadas", "Colunas Identificadas"]
-    for i, h in enumerate(cabecalhos, start=2):
-        cell = ws.cell(4, i, h)
-        cell.fill = _fill(t["header_bg"])
-        cell.font = _font(bold=True, size=11, color=t["header_fg"])
-        cell.border = _border(t["border"])
-        cell.alignment = _align("center" if i != 3 else "left", "center")
+    # ── Alturas ──────────────────────────────────────────────────────────────
+    ws.row_dimensions[1].height  = 16   # respiro topo
+    ws.row_dimensions[2].height  = 14
+    ws.row_dimensions[3].height  = 52   # linha do título
+    ws.row_dimensions[4].height  = 8    # separador
+    ws.row_dimensions[5].height  = 14
+    ws.row_dimensions[6].height  = 54   # cards de métrica
+    ws.row_dimensions[7].height  = 12
+    ws.row_dimensions[8].height  = 16
+    ws.row_dimensions[9].height  = 36   # cabeçalho da tabela
 
-    abas = [s for s in wb.sheetnames if s != "📊 Dashboard"]
-    for idx, nome in enumerate(abas, start=1):
-        row, aba = 4 + idx, wb[nome]
-        info = detectar_estrutura(aba)
-        valores = [f"{idx:02d}", nome, max(0, info["data_end"] - info["data_start"] + 1), max(0, info["col_end"] - info["col_start"] + 1)]
-        for j, valor in enumerate(valores, start=2):
-            cell = ws.cell(row, j, valor)
-            cell.fill = _fill("FFFFFF" if idx % 2 else "F9FAFB")
-            cell.font = _font(size=11, color="1F2937")
-            cell.border = _border(t["border"])
-            cell.alignment = _align("center" if j != 3 else "left", "center")
-        ws.row_dimensions[row].height = 28
+    # ── Fills base ───────────────────────────────────────────────────────────
+    fill_fundo        = _fill("FFFFFF")
+    fill_header_bg    = _fill(t["header_bg"])
+    fill_panel        = _fill(t["panel_bg"])
+    fill_card         = _fill("FFFFFF")
+    fill_zebra        = _fill(t["zebra"])
 
-    ws.column_dimensions["B"].width = 10
-    ws.column_dimensions["C"].width = 40
-    ws.column_dimensions["D"].width = 22
-    ws.column_dimensions["E"].width = 22
+    # Pinta fundo geral (linhas 1-9) com cor de painel
+    for r in range(1, 10):
+        for c in range(1, 7):
+            ws.cell(r, c).fill = fill_panel
+
+    # ── TÍTULO ────────────────────────────────────────────────────────────────
+    ws.merge_cells("B3:E3")
+    titulo_cell = ws["B3"]
+    titulo_cell.value     = "DASHBOARD DO ARQUIVO"
+    titulo_cell.font      = Font(name="Calibri", bold=True, size=22, color=t["title_fg"])
+    titulo_cell.alignment = Alignment(horizontal="left", vertical="center")
+    titulo_cell.fill      = fill_panel
+
+    # Linha decorativa sob o título (simula underline premium)
+    for c in range(2, 6):
+        cell = ws.cell(4, c)
+        cell.fill   = _fill(t["header_bg"])
+        cell.border = Border()
+
+    # ── CARDS DE MÉTRICAS ─────────────────────────────────────────────────────
+    abas_processaveis = [s for s in wb.sheetnames if s not in ("📊 Dashboard", "⚠ Inconsistências")]
+    total_linhas_geral = sum(
+        max(0, detectar_estrutura(wb[a])["data_end"] - detectar_estrutura(wb[a])["data_start"] + 1)
+        for a in abas_processaveis
+    )
+
+    metricas = [
+        ("C6", "TOTAL DE ABAS",    str(len(abas_processaveis))),
+        ("D6", "REGISTROS",        f"{total_linhas_geral:,}".replace(",", ".")),
+        ("E6", "GERADO EM",        datetime.now().strftime("%d/%m/%Y")),
+    ]
+
+    for addr, label, valor in metricas:
+        col_letter = addr[0]
+        row_num    = int(addr[1:])
+        c = ws[addr]
+        c.fill      = fill_card
+        c.alignment = Alignment(horizontal="center", vertical="center")
+
+        # Label pequeno acima
+        label_row = row_num - 0  # dentro da célula mesclamos ou usamos 2 linhas via formato
+        # Vamos usar uma célula com \n (quebra)
+        c.value = f"{label}\n{valor}"
+        c.font  = Font(name="Calibri", bold=False, size=9, color=t["label_fg"])
+        c.alignment = Alignment(horizontal="center", vertical="center", wrap_text=True)
+
+        # Borda card premium
+        borda_card = Border(
+            left  =Side(border_style="medium", color=t["card_border"]),
+            right =Side(border_style="medium", color=t["card_border"]),
+            top   =Side(border_style="medium", color=t["card_border"]),
+            bottom=Side(border_style="medium", color=t["card_border"]),
+        )
+        c.border = borda_card
+
+        # Sobrescreve com formatação do número (valor maior)
+        # Usamos duas células: uma para label, uma para valor
+        # Estratégia: a célula principal mostra o VALOR grande
+        c.value = valor
+        c.font  = Font(name="Calibri", bold=True, size=20, color=t["metric_fg"])
+        c.alignment = Alignment(horizontal="center", vertical="center")
+
+        # Célula de label (linha acima — row 5)
+        label_cell = ws.cell(5, ord(col_letter) - ord("A") + 1)
+        label_cell.value     = label
+        label_cell.font      = Font(name="Calibri", bold=False, size=9,
+                                    color=t["label_fg"], italic=True)
+        label_cell.alignment = Alignment(horizontal="center", vertical="bottom")
+        label_cell.fill      = fill_panel
+
+    # ── CABEÇALHO DA TABELA ───────────────────────────────────────────────────
+    cabecalhos_tabela = ["", "#", "Nome da Planilha", "Registros", "Colunas"]
+    for i, h in enumerate(cabecalhos_tabela, start=1):
+        cell = ws.cell(9, i)
+        cell.value     = h
+        cell.fill      = fill_header_bg
+        cell.font      = Font(name="Calibri", bold=True, size=10, color=t["header_fg"])
+        cell.alignment = Alignment(
+            horizontal="center" if i not in (3,) else "left",
+            vertical="center",
+            indent=1 if i == 3 else 0
+        )
+        cell.border = Border(
+            bottom=Side(border_style="medium", color=t["header_bg"])
+        )
+
+    # ── LINHAS DE DADOS DA TABELA ─────────────────────────────────────────────
+    for idx, nome in enumerate(abas_processaveis, start=1):
+        row     = 9 + idx
+        aba     = wb[nome]
+        info_a  = detectar_estrutura(aba)
+        n_linhas = max(0, info_a["data_end"] - info_a["data_start"] + 1)
+        n_colunas = max(0, info_a["col_end"] - info_a["col_start"] + 1)
+
+        is_par    = idx % 2 == 0
+        row_fill  = fill_zebra if is_par else _fill("FFFFFF")
+
+        dados_row = ["", f"{idx:02d}", nome, f"{n_linhas:,}".replace(",", "."), str(n_colunas)]
+        aligns    = ["center", "center", "left", "center", "center"]
+        indents   = [0, 0, 1, 0, 0]
+
+        for j, (val, halign, ind) in enumerate(zip(dados_row, aligns, indents), start=1):
+            cell = ws.cell(row, j)
+            cell.value     = val
+            cell.fill      = row_fill
+            cell.font      = Font(name="Calibri", size=10, color="1C2B3A")
+            cell.alignment = Alignment(horizontal=halign, vertical="center", indent=ind)
+            cell.border    = Border(
+                bottom=Side(border_style="thin", color=t["border"])
+            )
+
+        ws.row_dimensions[row].height = 26
+
+    # Linha de fechamento da tabela
+    linha_fechamento = 9 + len(abas_processaveis) + 1
+    for c in range(1, 6):
+        cell = ws.cell(linha_fechamento, c)
+        cell.fill   = fill_panel
+        cell.border = Border(top=Side(border_style="medium", color=t["border_strong"]))
+
 
 def criar_resumo_consolidacao(wb, arquivos_usados, total_linhas, resumo_categorias, tema_nome):
     t = TEMAS.get(tema_nome, TEMAS["🔵 Azul Executivo"])
-    if "📊 Visão Geral" in wb.sheetnames: del wb["📊 Visão Geral"]
+
+    if "📊 Visão Geral" in wb.sheetnames:
+        del wb["📊 Visão Geral"]
 
     ws = wb.create_sheet("📊 Visão Geral", 0)
-    ws.sheet_view.showGridLines = False
+    ws.sheet_view.showGridLines  = False
     ws.sheet_properties.tabColor = t["tab_color"]
 
-    ws["B2"] = "CONSOLIDAÇÃO EXECUTIVA"
-    ws["B2"].font = _font(bold=True, size=18, color=t["title_fg"])
+    ws.column_dimensions["A"].width = 3
+    ws.column_dimensions["B"].width = 36
+    ws.column_dimensions["C"].width = 18
+    ws.column_dimensions["D"].width = 42
+    ws.column_dimensions["E"].width = 3
 
-    metricas = [("Arquivos Processados:", len(arquivos_usados)), ("Volume de Linhas:", total_linhas), ("Abas Geradas:", len(resumo_categorias))]
-    for i, (rotulo, valor) in enumerate(metricas, start=4):
-        ws.cell(i, 2, rotulo).font = _font(bold=True, size=11, color="4B5563")
-        ws.cell(i, 3, valor).font = _font(size=12, color="111827")
-        ws.cell(i, 3).alignment = _align("left", "center")
+    fill_panel   = _fill(t["panel_bg"])
+    fill_header  = _fill(t["header_bg"])
+    fill_zebra   = _fill(t["zebra"])
 
-    cabecalhos = ["Nome da Aba", "Volume de Dados", "Arquivo de Origem"]
-    for i, h in enumerate(cabecalhos, start=2):
-        ref = ws.cell(8, i)
-        ref.value = h
-        ref.fill = _fill(t["header_bg"])
-        ref.font = _font(bold=True, size=11, color=t["header_fg"])
-        ref.border = _border(t["border"])
-        ref.alignment = _align("center" if i == 3 else "left", "center")
+    for r in range(1, 9):
+        for c in range(1, 6):
+            ws.cell(r, c).fill = fill_panel
+
+    ws.row_dimensions[1].height = 16
+    ws.row_dimensions[2].height = 14
+    ws.row_dimensions[3].height = 52
+    ws.row_dimensions[4].height = 8
+    ws.row_dimensions[5].height = 14
+    ws.row_dimensions[6].height = 54
+    ws.row_dimensions[7].height = 16
+    ws.row_dimensions[8].height = 36
+
+    ws.merge_cells("B3:D3")
+    t_cell = ws["B3"]
+    t_cell.value     = "CONSOLIDAÇÃO EXECUTIVA"
+    t_cell.font      = Font(name="Calibri", bold=True, size=22, color=t["title_fg"])
+    t_cell.alignment = Alignment(horizontal="left", vertical="center")
+    t_cell.fill      = fill_panel
+
+    for c in range(2, 5):
+        cell = ws.cell(4, c)
+        cell.fill = _fill(t["header_bg"])
+
+    metricas_cons = [
+        ("B6", "ARQUIVOS",   str(len(arquivos_usados))),
+        ("C6", "REGISTROS",  f"{total_linhas:,}".replace(",", ".")),
+        ("D6", "ABAS",       str(len(resumo_categorias))),
+    ]
+
+    for addr, label, valor in metricas_cons:
+        col_letter = addr[0]
+        c = ws[addr]
+        c.value     = valor
+        c.font      = Font(name="Calibri", bold=True, size=20, color=t["metric_fg"])
+        c.alignment = Alignment(horizontal="center", vertical="center")
+        c.fill      = _fill("FFFFFF")
+        c.border    = Border(
+            left  =Side(border_style="medium", color=t["card_border"]),
+            right =Side(border_style="medium", color=t["card_border"]),
+            top   =Side(border_style="medium", color=t["card_border"]),
+            bottom=Side(border_style="medium", color=t["card_border"]),
+        )
+        label_c = ws.cell(5, ord(col_letter) - ord("A") + 1)
+        label_c.value     = label
+        label_c.font      = Font(name="Calibri", size=9, color=t["label_fg"], italic=True)
+        label_c.alignment = Alignment(horizontal="center", vertical="bottom")
+        label_c.fill      = fill_panel
+
+    cabs = ["", "Nome da Aba", "Registros", "Arquivo de Origem"]
+    for i, h in enumerate(cabs, start=1):
+        cell = ws.cell(8, i)
+        cell.value     = h
+        cell.fill      = fill_header
+        cell.font      = Font(name="Calibri", bold=True, size=10, color=t["header_fg"])
+        cell.alignment = Alignment(
+            horizontal="left" if i == 2 else "center",
+            vertical="center",
+            indent=1 if i == 2 else 0
+        )
+        cell.border = Border(bottom=Side(border_style="medium", color=t["header_bg"]))
 
     for i, (nome_aba, info) in enumerate(resumo_categorias.items(), start=9):
-        ws.cell(i, 2, nome_aba).alignment = _align_indent("left", "center", indent=1)
-        ws.cell(i, 3, f"{info['linhas']:,}".replace(",", ".")).alignment = _align("center", "center")
-        ws.cell(i, 4, info["arquivos"][0] if info["arquivos"] else "").alignment = _align_indent("left", "center", indent=1)
-        for j in (2, 3, 4):
-            c = ws.cell(i, j)
-            c.fill = _fill("FFFFFF" if i % 2 == 0 else "F9FAFB")
-            c.font = _font(size=11, color="1F2937")
-            c.border = _border(t["border"])
-        ws.row_dimensions[i].height = 28
+        is_par   = i % 2 == 0
+        row_fill = fill_zebra if is_par else _fill("FFFFFF")
+        vals = ["", nome_aba, f"{info['linhas']:,}".replace(",", "."),
+                info["arquivos"][0] if info["arquivos"] else ""]
+        aligns = ["center", "left", "center", "left"]
+        indents = [0, 1, 0, 1]
 
-    ws.column_dimensions["B"].width = 35
-    ws.column_dimensions["C"].width = 20
-    ws.column_dimensions["D"].width = 45
+        for j, (v, ha, ind) in enumerate(zip(vals, aligns, indents), start=1):
+            cell = ws.cell(i, j)
+            cell.value     = v
+            cell.fill      = row_fill
+            cell.font      = Font(name="Calibri", size=10, color="1C2B3A")
+            cell.alignment = Alignment(horizontal=ha, vertical="center", indent=ind)
+            cell.border    = Border(bottom=Side(border_style="thin", color=t["border"]))
+        ws.row_dimensions[i].height = 26
+
 
 def _noop(*args, **kwargs):
     pass
 
-def processar_arquivo(caminho: str, tema: str = "🔵 Azul Executivo", ordenar: bool = True, cb_prog=None, cb_log=None) -> str:
+
+def processar_arquivo(caminho: str, tema: str = "🔵 Azul Executivo", ordenar: bool = True,
+                      cb_prog=None, cb_log=None) -> str:
     cb_prog = cb_prog or _noop
-    cb_log = cb_log or _noop
+    cb_log  = cb_log  or _noop
 
     caminho_saida = os.path.splitext(caminho)[0] + "_formatado.xlsx"
     cb_log("📂 Analisando arquivo principal...")
@@ -1182,9 +1661,12 @@ def processar_arquivo(caminho: str, tema: str = "🔵 Azul Executivo", ordenar: 
 
     wb = None
     try:
-        try: wb = load_workbook(caminho, data_only=False)
-        except InvalidFileException: raise Exception("Arquivo Excel inválido ou corrompido.")
-        except FileNotFoundError: raise Exception("Arquivo não encontrado no sistema.")
+        try:
+            wb = load_workbook(caminho, data_only=False)
+        except InvalidFileException:
+            raise Exception("Arquivo Excel inválido ou corrompido.")
+        except FileNotFoundError:
+            raise Exception("Arquivo não encontrado no sistema.")
 
         ws_inc = obter_ou_criar_aba_inconsistencias(wb)
         abas_processaveis = [n for n in wb.sheetnames if n != "⚠ Inconsistências"]
@@ -1197,9 +1679,10 @@ def processar_arquivo(caminho: str, tema: str = "🔵 Azul Executivo", ordenar: 
 
             cb_log(f"🧠 Validando aba: {nome} (Contexto: {detectar_modulo_por_aba(nome).title()})")
             resumo = validar_sheet(ws_atual, ws_inc)
-            total_invalidos += resumo["total_invalidos"]
+            total_invalidos  += resumo["total_invalidos"]
             total_corrigidos += resumo["total_corrigidos"]
-            cb_log(f"   ↳ Encontrados: {resumo['total_colunas_mapeadas']} colunas | {resumo['total_corrigidos']} corrigidos | {resumo['total_invalidos']} falhas")
+            cb_log(f"   ↳ Encontrados: {resumo['total_colunas_mapeadas']} colunas | "
+                   f"{resumo['total_corrigidos']} corrigidos | {resumo['total_invalidos']} falhas")
 
             cb_log("📐 Ajustando largura das colunas...")
             auto_ajustar_largura(ws_atual)
@@ -1220,8 +1703,10 @@ def processar_arquivo(caminho: str, tema: str = "🔵 Azul Executivo", ordenar: 
         cb_log(f"📈 Resumo: {total_corrigidos} ajustes automáticos | {total_invalidos} falhas residuais")
         cb_log("💾 Fechando e gravando arquivo seguro...")
 
-        try: wb.save(caminho_saida)
-        except PermissionError: raise Exception(f"Feche a planilha no Excel antes de continuar:\n{caminho_saida}")
+        try:
+            wb.save(caminho_saida)
+        except PermissionError:
+            raise Exception(f"Feche a planilha no Excel antes de continuar:\n{caminho_saida}")
 
         cb_prog(100)
         cb_log("✅ OPERAÇÃO CONCLUÍDA.")
@@ -1231,36 +1716,48 @@ def processar_arquivo(caminho: str, tema: str = "🔵 Azul Executivo", ordenar: 
             try: wb.close()
             except Exception: pass
 
-def processar_consolidacao(caminhos: list, tema: str = "🔵 Azul Executivo", ordenar: bool = True, cb_prog=None, cb_log=None) -> str:
+
+def processar_consolidacao(caminhos: list, tema: str = "🔵 Azul Executivo", ordenar: bool = True,
+                           cb_prog=None, cb_log=None) -> str:
     cb_prog = cb_prog or _noop
-    cb_log = cb_log or _noop
-    
-    wb_final = Workbook()
-    total_linhas, resumo = 0, {}
+    cb_log  = cb_log  or _noop
+
+    wb_final    = Workbook()
+    total_linhas = 0
+    resumo       = {}
 
     try:
         for idx, caminho in enumerate(caminhos, 1):
             nome_arq = os.path.basename(caminho)
             cb_log(f"📂 Extraindo dados de: {nome_arq}")
-            try: wb_origem = load_workbook(caminho, data_only=True, read_only=True)
+            try:
+                wb_origem = load_workbook(caminho, data_only=True, read_only=True)
             except Exception as e:
                 cb_log(f"⚠️ Alerta em '{nome_arq}': {str(e)} - Arquivo ignorado.")
                 continue
             try:
                 for aba_origem in wb_origem.sheetnames:
-                    nome_base = f"{os.path.splitext(nome_arq)[0]}_{aba_origem}" if len(wb_origem.sheetnames) > 1 else os.path.splitext(nome_arq)[0]
-                    nome_aba = limpar_nome_aba(nome_base, wb_final.sheetnames)
-                    ws_nova = wb_final.create_sheet(nome_aba)
-                    for i, linha in enumerate((l for l in wb_origem[aba_origem].iter_rows(values_only=True) if not linha_vazia(l)), 1):
+                    nome_base = (f"{os.path.splitext(nome_arq)[0]}_{aba_origem}"
+                                 if len(wb_origem.sheetnames) > 1
+                                 else os.path.splitext(nome_arq)[0])
+                    nome_aba  = limpar_nome_aba(nome_base, wb_final.sheetnames)
+                    ws_nova   = wb_final.create_sheet(nome_aba)
+                    for i, linha in enumerate(
+                        (l for l in wb_origem[aba_origem].iter_rows(values_only=True)
+                         if not linha_vazia(l)), 1
+                    ):
                         copiar_linha(ws_nova, i, linha)
                         total_linhas += 1
                     filtrar_colunas_util(ws_nova)
                     resumo[nome_aba] = {"arquivos": [nome_arq], "linhas": ws_nova.max_row}
-            finally: wb_origem.close()
+            finally:
+                wb_origem.close()
             cb_prog(10 + int(45 * idx / len(caminhos)))
 
-        if not resumo: raise Exception("Nenhum dado compatível localizado nos arquivos.")
-        if "Sheet" in wb_final.sheetnames and len(wb_final.sheetnames) > 1: del wb_final["Sheet"]
+        if not resumo:
+            raise Exception("Nenhum dado compatível localizado nos arquivos.")
+        if "Sheet" in wb_final.sheetnames and len(wb_final.sheetnames) > 1:
+            del wb_final["Sheet"]
 
         cb_log("🧾 Compilando Visão Geral...")
         cb_prog(65)
@@ -1268,13 +1765,14 @@ def processar_consolidacao(caminhos: list, tema: str = "🔵 Azul Executivo", or
         ws_inc = obter_ou_criar_aba_inconsistencias(wb_final)
 
         cb_log("🧠 Iniciando validação especialista em lote...")
-        abas = [a for a in wb_final.sheetnames if a not in ("📊 Dashboard", "📊 Visão Geral", "⚠ Inconsistências")]
+        abas = [a for a in wb_final.sheetnames
+                if a not in ("📊 Dashboard", "📊 Visão Geral", "⚠ Inconsistências")]
         tot_inv, tot_corr = 0, 0
 
         for i, nome in enumerate(abas, 1):
             cb_log(f"🧠 Validando aba: {nome} (Contexto: {detectar_modulo_por_aba(nome).title()})")
             r_val = validar_sheet(wb_final[nome], ws_inc)
-            tot_inv += r_val["total_invalidos"]
+            tot_inv  += r_val["total_invalidos"]
             tot_corr += r_val["total_corrigidos"]
             cb_log(f"   ↳ {nome}: {r_val['total_corrigidos']} corretos | {r_val['total_invalidos']} falhas")
 
@@ -1295,18 +1793,18 @@ def processar_consolidacao(caminhos: list, tema: str = "🔵 Azul Executivo", or
         saida = os.path.join(os.path.dirname(caminhos[0]), "consolidado_formatado.xlsx")
         cb_log("💾 Compilando arquivo seguro...")
         cb_prog(97)
-        try: wb_final.save(saida)
-        except PermissionError: raise Exception(f"Feche a planilha no Excel antes de continuar:\n{saida}")
+        try:
+            wb_final.save(saida)
+        except PermissionError:
+            raise Exception(f"Feche a planilha no Excel antes de continuar:\n{saida}")
 
         cb_prog(100)
         cb_log("✅ CONSOLIDAÇÃO CONCLUÍDA.")
         return saida
     finally:
         if wb_final:
-            try:
-                wb_final.close()
-            except Exception:
-                pass
+            try: wb_final.close()
+            except Exception: pass
 
 
 def processar_arquivos(lista_arquivos, pasta_saida, tema="🔵 Azul Executivo", ordenar=True):
@@ -1317,19 +1815,11 @@ def processar_arquivos(lista_arquivos, pasta_saida, tema="🔵 Azul Executivo", 
     pasta_saida.mkdir(parents=True, exist_ok=True)
 
     if len(lista_arquivos) == 1:
-        arquivo_gerado = processar_arquivo(
-            lista_arquivos[0],
-            tema=tema,
-            ordenar=ordenar
-        )
+        arquivo_gerado = processar_arquivo(lista_arquivos[0], tema=tema, ordenar=ordenar)
     else:
-        arquivo_gerado = processar_consolidacao(
-            lista_arquivos,
-            tema=tema,
-            ordenar=ordenar
-        )
+        arquivo_gerado = processar_consolidacao(lista_arquivos, tema=tema, ordenar=ordenar)
 
-    origem = Path(arquivo_gerado)
+    origem  = Path(arquivo_gerado)
     destino = pasta_saida / origem.name
 
     if origem.resolve() != destino.resolve():
