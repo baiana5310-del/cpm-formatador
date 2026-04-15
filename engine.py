@@ -881,17 +881,17 @@ def validador_veiculos(linha_ctx):
             ctx["motivo"] = "Motorista convertido para termo padrão inteligente"
             ctx["corrigido"] = True
 
-
 def validador_materiais(linha_ctx):
     if "material" in linha_ctx and "unidade" in linha_ctx:
         mat = linha_ctx["material"]
         uni = linha_ctx["unidade"]
-        if mat.get("ok") and "CIMENTO" in normalizar_texto_upper_sem_acentos(mat.get("v_atual")):
-            uni["v_atual"] = "KG"
-            uni["ok"] = True
-            uni["motivo"] = "Unidade de cimento forçada para KG"
-            uni["corrigido"] = True
 
+        if mat.get("ok") and "CIMENTO" in normalizar_texto_upper_sem_acentos(mat.get("v_atual")):
+            if not uni.get("v_atual"):  # só define se estiver vazio
+                uni["v_atual"] = "SACO"
+                uni["ok"] = True
+                uni["motivo"] = "Unidade padrão definida para SACO"
+                uni["corrigido"] = True
 
 def validador_equipe(linha_ctx):
     if "falta" in linha_ctx:
